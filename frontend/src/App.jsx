@@ -17,17 +17,31 @@ function App() {
   const auth = useSelector((store) => store.auth);
   const {fetch} = usePostFetch();
   const dispatch = useDispatch();
-  useEffect(()=>{
-    const autoLogin = async()=>{
-      if(auth.token===null)return
-      const data = await fetch("/autoLogin")
-      data.token = auth.token;
-      dispatch(setAuth(data))
-    }
-    autoLogin()
-  },[auth])
+  const [authChecked, setAuthChecked] = useState(false);
 
-  console.log(auth)
+  useEffect(() => {
+    const autoLogin = async () => {
+      if (!auth.token) {
+       setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const data = await fetch("/autoLogin");
+        data.token = auth.token;
+        dispatch(setAuth(data));
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    autoLogin();
+}, [auth.token]);
+
+  if(!authChecked){
+    return <div>loading..</div>
+  }
+
   return (
     <BrowserRouter>
       {auth.username !== null ? (

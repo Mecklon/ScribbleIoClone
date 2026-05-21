@@ -20,9 +20,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         if(user==null){
             throw new UsernameNotFoundException("email not found in the database");
         }
-        return org.springframework.security.core.userdetails.User
-                .withUsername(String.valueOf(user.getEmail()))
-                .password(user.getPassword())
-                .build();
+        return new CustomUserDetails(user);
     }
 }

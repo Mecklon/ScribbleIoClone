@@ -10,6 +10,7 @@ import mecklon.scribbleIoClone.dto.AutoLoginRequest;
 import mecklon.scribbleIoClone.dto.SignupRequest;
 import mecklon.scribbleIoClone.model.User;
 import mecklon.scribbleIoClone.repository.UserRepository;
+import mecklon.scribbleIoClone.service.CustomUserDetails;
 import mecklon.scribbleIoClone.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,33 +48,33 @@ public class AuthController {
                 )
         );
 
-        UserDetails userDetails = userDetailsService
+        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService
             .loadUserByUsername(request.getEmail());
 
         String token = jwtUtil.generateToken(userDetails);
-
-        return new AuthResponse(token, request.getEmail() );
+        User user = userRepository.findByEmail(userDetails.getUsername());
+        return new AuthResponse(token, userDetails.getUsername(), userDetails.getDisplayUsername(), user.getFileName() );
     }
 
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request){
-        String token = jwtUtil.generateToken(request.email);
+        String token = jwtUtil.generateToken(request.getEmail());
 
-        if(request.username==null || request.username.isEmpty() ||
-                request.email==null || request.email.isEmpty() ||
-                request.password==null || request.password.isEmpty()){
+        if(request.getUsername()==null || request.getUsername().isEmpty() ||
+                request.getEmail()==null || request.getEmail().isEmpty() ||
+                request.getPassword()==null || request.getPassword().isEmpty()){
             throw new BadCredentialsException("email or password not found");
         }
         User user = userRepository.findByEmail(request.getEmail());
         if(user!=null){
             throw new UserAlreadyExistsException("User with this email already exists");
         }
-        user = new User(request.email, passwordEncoder.encode(request.password), request.username);
+        user = new User(request.getEmail(), passwordEncoder.encode(request.getPassword()), request.getUsername(), null,null);
         userRepository.save(user);
 
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(token, request.email));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(token, request.getEmail(), request.getUsername(),null));
     }
 
 
