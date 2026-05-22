@@ -4,13 +4,16 @@ package mecklon.scribbleIoClone.controller;
 import lombok.RequiredArgsConstructor;
 import mecklon.scribbleIoClone.dto.AuthResponse;
 import mecklon.scribbleIoClone.dto.AutoLoginRequest;
+import mecklon.scribbleIoClone.dto.PlayerDTO;
 import mecklon.scribbleIoClone.dto.ProfileDTO;
 import mecklon.scribbleIoClone.model.User;
 import mecklon.scribbleIoClone.repository.UserRepository;
 import mecklon.scribbleIoClone.service.CustomUserDetails;
+import mecklon.scribbleIoClone.service.GameService;
 import mecklon.scribbleIoClone.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -20,7 +23,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class LobbyController {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final GameService gameService;
 
     @PostMapping("/autoLogin")
     public ResponseEntity<AuthResponse> autoLogin(Authentication auth){
@@ -47,8 +53,13 @@ public class LobbyController {
     }
 
     @GetMapping("/createRoom")
-    ResponseEntity<Void> createRoom(Authentication auth){
-        return null;
+    ResponseEntity<String> createRoom(Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.createRoom(auth));
+    }
+
+    @GetMapping("/joinRoom/{roomId}")
+    ResponseEntity<List<PlayerDTO>> joinRoom(Authentication auth, @PathVariable("roomId") String roomId){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.joinRoom(auth, roomId));
     }
 
     @PostMapping("/test/{input}")

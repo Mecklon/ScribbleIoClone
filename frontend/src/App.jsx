@@ -47,7 +47,7 @@ function App() {
       {auth.username !== null ? (
         <Routes>
           <Route path="/" element={<Menu />}></Route> 
-          <Route path="/roomLobby" element={<RoomLobby />}></Route> 
+          <Route path="/roomLobby/:roomId" element={<RoomLobby />}></Route> 
           <Route path="*" element={<Navigate to="/" />}></Route> 
         </Routes>
       ) : (

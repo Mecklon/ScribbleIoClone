@@ -1,6 +1,64 @@
-import React from "react";
-
+import React, { useEffect, useRef, useState } from "react";
+import useWebSocketContext from "./hooks/useWebSocketContext";
+import { useNavigate, useParams } from "react-router-dom";
+import useGetFetch from "./hooks/useGetFetch";
+import Image from "./hooks/Image";
+import { useSelector } from "react-redux";
 function RoomLobby() {
+
+
+    const auth= useSelector(store=>store.auth)
+
+    const {roomId} = useParams();
+
+    const {loading, error, fetch} = useGetFetch();
+    
+    const navigate = useNavigate();
+
+    const [players, setPlayers] = useState([])
+
+    const { client, wsConnected } = useWebSocketContext();
+
+    useEffect(() => {
+        if (!wsConnected) return;
+        if (!roomId) {
+            navigate("/");
+            return;
+        }
+
+        const sub = client.subscribe(
+            "/topic/room/" + roomId,(payload) => {
+                const event = JSON.parse(payload.body)
+                if(event.type === "NEW_MEMBER_JOINED"){
+                    if (event.initiator === auth.username) return;
+                    setPlayers(prev => [
+                        ...prev,
+                        event.initiator
+                    ]);
+                }
+            }
+        );
+
+        const join = async () => {
+            const data =
+            await fetch("/joinRoom/" + roomId);
+            setPlayers(data);
+        };
+
+        join();
+        return () => sub.unsubscribe();
+    }, [wsConnected, roomId]);
+
+    const handleMouseOver = ()=>{
+        linkRef.current.innerText = "http://localhost:5173/roomLobby/"+roomId
+    }
+    console.log(players)
+
+    const handleMouseLeave = ()=>{
+        linkRef.current.innerText = "hover your mouse to get the link"
+    }
+    const linkRef = useRef()
+    
   return (
     <div className="p-5 flex flex-col gap-5 h-screen bg-red-500">
       <div className="flex gap-5 h-[80%] w-full">
@@ -48,68 +106,26 @@ function RoomLobby() {
         <div className="grow flex flex-col  bg-red-800">
             <div className="text-white text-5xl font-semibold text-center mb-4">Players</div>
             <div className="bg-white grow w-full overflow-auto flex  gap-3 flex-wrap p-3 items-baseline">
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-                <div className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                    <img src="" className="w-[80%] bg-black rounded-full aspect-square" alt="" />
-                    <div className="text-2xl text-center">Mecklon Fernandes</div>
-                </div>
-               
+                {
+                    players.map(item=>{
+                        return <div key={item.email} className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
+                                    <Image className="w-[80%] bg-black rounded-full aspect-square" path={item.profile}></Image>
+                                    <div className="text-2xl text-center">{item.username}</div>
+                                </div>
+                    })
+                }
+
             </div>
         </div>
       </div>
         <div className="w-full bg-red-800 grow">
             <div className="text-white text-center text-5xl font-semibold">Invite your friends!</div>
-            <div className="flex mt-6">
-                <div className="grow bg-white text-center p-2 px-3 text-stone-800 text-3xl
-                ">Hover over me to see the link</div>
-                <div className="bg-yellow-600 p-2 px-3 text-3xl text-white">copy</div>
+            <div onMouseLeave={handleMouseLeave} onMouseOver={handleMouseOver} className="flex mt-6">
+                <div ref={linkRef} className="grow bg-white text-center p-2 px-3 text-stone-800 text-3xl
+                ">hover your mouse to get the link</div>
+                <div onClick={()=>{
+                    navigator.clipboard.writeText("http://localhost:5173/roomLobby/"+roomId);
+                }} className="bg-yellow-600 p-2 px-3 text-3xl text-white cursor-pointer">copy</div>
             </div>
         </div>
    

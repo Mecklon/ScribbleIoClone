@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo ,useEffect} from "react";
 import { Client } from "@stomp/stompjs";
 
 export function useWebSocket(token) {
@@ -12,6 +12,14 @@ export function useWebSocket(token) {
       reconnectDelay: 5000, 
     });
   }, [token]);
+
+  useEffect(() => {
+    client.activate();  
+
+    return () => {
+      client.deactivate(); 
+    };
+  }, [client]);
 
   return client;
 }

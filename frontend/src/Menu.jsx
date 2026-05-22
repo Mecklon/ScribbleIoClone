@@ -1,13 +1,15 @@
 import React, { useEffect, useState,useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearAuth, updateProfile } from "../store/AuthSlice";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import avatar from './assets/defaultAvatar.webp'
 import Image from "./hooks/Image";
 import { IoCheckmarkOutline } from "react-icons/io5";
 import { RxCross1 } from "react-icons/rx";
 import { FaLessThan } from "react-icons/fa6";
 import usePostFetch from "./hooks/usePostFetch";
+import useGetFetch from "./hooks/useGetFetch";
+import rolling from './assets/rolling.gif'
 
 
 
@@ -19,6 +21,10 @@ function menu() {
   const nameRef = useRef();
   const imageRef = useRef();
   const [showButtons, setShowButtons] = useState(false)
+
+  const navigate = useNavigate();
+
+  
   const handleChange = (e) => {
     if (e.target.files[0]) {
       setImg(URL.createObjectURL(e.target.files[0]));
@@ -45,6 +51,7 @@ function menu() {
   };
 
   const{ fetch, loading } = usePostFetch();
+  const {fetch: createRoomFetch, loading:roomLoading} = useGetFetch();
 
   const handleProfileChange = async()=>{
     const formData = new FormData();
@@ -69,6 +76,10 @@ function menu() {
     };
   }, [img]);
 
+  const createRoom = async()=>{
+    const roomId = await createRoomFetch("/createRoom")
+    navigate("/roomLobby/"+roomId);
+  }
 
   return (
     <div className="h-screen flex-col flex gap-2 items-center justify-center ">
@@ -102,9 +113,12 @@ function menu() {
           defaultValue={auth.username}
         />
       </div>
-      <Link to="/roomLobby" className="text-center bg-blue-500 w-125 text-3xl font-bold p-2 rounded-md text-white">
+      <button disabled={roomLoading} onClick={createRoom}  className="flex gap-2 items-center justify-center bg-blue-500 w-125 text-3xl font-bold p-2 rounded-md text-white">
         Create Room
-      </Link>
+        {roomLoading &&
+          <img src={rolling} className="h-10"/>
+        }
+      </button>
     </div>
   );
 }
