@@ -1,4 +1,4 @@
-package mecklon.scribbleIoClone;
+package mecklon.scribbleIoClone.websocket;
 
 
 

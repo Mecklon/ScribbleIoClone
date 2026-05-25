@@ -12,4 +12,5 @@ import mecklon.scribbleIoClone.dto.types.GameEventType;
 public class GameEventDTO {
     PlayerDTO initiator;
     GameEventType type;
+    Object data;
 }

@@ -61,7 +61,7 @@ function Signup() {
             username,
             password,
             email
-        })
+        }, true)
         if(data){
             dispatch(setAuth(data))
         }

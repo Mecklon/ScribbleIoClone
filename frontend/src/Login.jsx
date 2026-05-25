@@ -42,7 +42,7 @@ function Login() {
         const data = await fetch("/auth/login",{
             email,
             password
-        });
+        },true);
         if(data){
             dispatch(setAuth(data))
             navigate("/")

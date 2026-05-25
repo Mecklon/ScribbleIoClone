@@ -10,13 +10,15 @@ const authSlice = createSlice({
         username:null,
         email:null,
         token: localStorage.getItem("JwtToken") || null,
-        profile:null
+        profile:null,
+        id: null
     },
     reducers:{
         setAuth: (state, action)=>{
             state.username = action.payload.username
             state.email = action.payload.email
             state.token = action.payload.token
+            state.id = action.payload.id
             localStorage.setItem("JwtToken", action.payload.token)
             state.profile = action.payload.profile
         },

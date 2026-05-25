@@ -8,6 +8,7 @@ function RoomLobby() {
 
 
     const auth= useSelector(store=>store.auth)
+    console.log(auth)
 
     const {roomId} = useParams();
 
@@ -19,6 +20,15 @@ function RoomLobby() {
 
     const { client, wsConnected } = useWebSocketContext();
 
+    const [host , setHost] = useState(null);
+
+    const [rounds, setRounds] = useState(3);
+    const [timePerRound, setTimePerRound] = useState(40);
+    const [hostUsername, setHostUsername] = useState("")
+
+    const timeInputRef = useRef();
+    const roundInputRef = useRef();
+
     useEffect(() => {
         if (!wsConnected) return;
         if (!roomId) {
@@ -28,26 +38,40 @@ function RoomLobby() {
 
         const sub = client.subscribe(
             "/topic/room/" + roomId,(payload) => {
+
                 const event = JSON.parse(payload.body)
+                console.log(event)
                 if(event.type === "NEW_MEMBER_JOINED"){
                     if (event.initiator === auth.username) return;
                     setPlayers(prev => [
                         ...prev,
                         event.initiator
                     ]);
-                }
+                }else if(event.type === "SETTINGS_CHANGED" && host !== auth.id){
+                    if(event.data.rounds!=rounds){
+                        setRounds(event.data.rounds)
+                    }
+                    console.log("time",event.data.timePerRound)
+                    console.log(event.data.timePerRound!=timePerRound)
+                    if(event.data.timePerRound!=timePerRound){
+                        console.log("setting to",event.data.timePerRound)
+                        setTimePerRound(event.data.timePerRound)
+                    }
+                }   
             }
         );
-
         const join = async () => {
             const data =
             await fetch("/joinRoom/" + roomId);
-            setPlayers(data);
+            setPlayers(data.players);
+            setHost(data.host);
+            setHostUsername(data.hostUsername)
         };
-
         join();
         return () => sub.unsubscribe();
     }, [wsConnected, roomId]);
+    console.log(host)
+    console.log("sj:",timePerRound)
 
     const handleMouseOver = ()=>{
         linkRef.current.innerText = "http://localhost:5173/roomLobby/"+roomId
@@ -58,16 +82,36 @@ function RoomLobby() {
         linkRef.current.innerText = "hover your mouse to get the link"
     }
     const linkRef = useRef()
+
+    const handleSettingsChange = ()=>{
+        client.publish({
+            destination: "/app/settingsChange",
+            body: JSON.stringify({
+                rounds: roundInputRef.current.value,
+                timePerRound: timeInputRef.current.value,
+                roomId
+            }),
+        });
+    }
     
   return (
     <div className="p-5 flex flex-col gap-5 h-screen bg-red-500">
+        {
+            auth.id !== host &&
+            <div className="text-4xl font-bold">
+                Rounds: {rounds}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time Per Round: {timePerRound}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                Host: {hostUsername}
+            </div>
+        }
       <div className="flex gap-5 h-[80%] w-full">
-        <div className="w-160 shrink-0 bg-red-800">
+        {
+            auth.id === host && <div className="w-160 shrink-0 bg-red-800">
             <div className="text-white text-5xl font-semibold text-center mb-4">Settings</div>
             <div className="bg-white p-2">
                 <div className="text-center text-3xl border-b pb-2">Lobby</div>
                 <div className="text-2xl font-semibold py-1">Rounds</div>
-                <select name="" className="border w-full p-2 px-3 text-2xl border-stone-700" id="">
+                <select ref={roundInputRef} onChange={handleSettingsChange} defaultValue={3} name="" className="border w-full p-2 px-3 text-2xl border-stone-700" id="">
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
@@ -76,7 +120,7 @@ function RoomLobby() {
                     <option value="6">6</option>
                 </select>
                 <div className="text-2xl font-semibold py-1">Draw time in seconds</div>
-                 <select name="" className="border w-full p-2 px-3 text-2xl border-stone-700" id="">
+                 <select ref={timeInputRef} onChange={handleSettingsChange} defaultValue={40} name="" className="border w-full p-2 px-3 text-2xl border-stone-700" id="">
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="30">30</option>
@@ -103,6 +147,7 @@ function RoomLobby() {
                 </button>
             </div>
         </div>
+        }
         <div className="grow flex flex-col  bg-red-800">
             <div className="text-white text-5xl font-semibold text-center mb-4">Players</div>
             <div className="bg-white grow w-full overflow-auto flex  gap-3 flex-wrap p-3 items-baseline">

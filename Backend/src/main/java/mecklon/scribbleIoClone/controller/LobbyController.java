@@ -2,10 +2,7 @@ package mecklon.scribbleIoClone.controller;
 
 
 import lombok.RequiredArgsConstructor;
-import mecklon.scribbleIoClone.dto.AuthResponse;
-import mecklon.scribbleIoClone.dto.AutoLoginRequest;
-import mecklon.scribbleIoClone.dto.PlayerDTO;
-import mecklon.scribbleIoClone.dto.ProfileDTO;
+import mecklon.scribbleIoClone.dto.*;
 import mecklon.scribbleIoClone.model.User;
 import mecklon.scribbleIoClone.repository.UserRepository;
 import mecklon.scribbleIoClone.service.CustomUserDetails;
@@ -37,10 +34,11 @@ public class LobbyController {
 
     @PostMapping("/autoLogin")
     public ResponseEntity<AuthResponse> autoLogin(Authentication auth){
-        CustomUserDetails user = (CustomUserDetails) auth.getPrincipal();
-        User u = userRepository.findByEmail(user.getUsername());
-        return ResponseEntity.status(HttpStatus.OK).body(new AuthResponse(null, user.getUsername(), user.getDisplayUsername(), u.getFileName()));
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        User user = userRepository.findByEmail(userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.OK).body(new AuthResponse(user.getId(),null, userDetails.getUsername(), userDetails.getDisplayUsername(), user.getFileName()));
     }
+
 
 
     @PostMapping("/updateProfile")
@@ -58,7 +56,7 @@ public class LobbyController {
     }
 
     @GetMapping("/joinRoom/{roomId}")
-    ResponseEntity<List<PlayerDTO>> joinRoom(Authentication auth, @PathVariable("roomId") String roomId){
+    ResponseEntity<RoomDetails> joinRoom(Authentication auth, @PathVariable("roomId") String roomId){
         return ResponseEntity.status(HttpStatus.OK).body(gameService.joinRoom(auth, roomId));
     }
 

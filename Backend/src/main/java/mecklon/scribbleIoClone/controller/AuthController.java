@@ -55,7 +55,7 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(userDetails);
         User user = userRepository.findByEmail(userDetails.getUsername());
-        return new AuthResponse(token, userDetails.getUsername(), userDetails.getDisplayUsername(), user.getFileName() );
+        return new AuthResponse(user.getId(),token, userDetails.getUsername(), userDetails.getDisplayUsername(), user.getFileName() );
     }
 
 
@@ -72,11 +72,17 @@ public class AuthController {
         if(user!=null){
             throw new UserAlreadyExistsException("User with this email already exists");
         }
-        user = new User(request.getEmail(), passwordEncoder.encode(request.getPassword()), request.getUsername(), null,null);
+        user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .username(request.getUsername())
+                .fileName(null)
+                .filePath(null)
+                .build();
         userRepository.save(user);
 
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(token, request.getEmail(), request.getUsername(),null));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(user.getId(),token, request.getEmail(), request.getUsername(),null));
     }
 
 

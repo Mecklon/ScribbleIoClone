@@ -3,6 +3,7 @@ package mecklon.scribbleIoClone.service;
 import lombok.RequiredArgsConstructor;
 import mecklon.scribbleIoClone.dto.GameEventDTO;
 import mecklon.scribbleIoClone.dto.PlayerDTO;
+import mecklon.scribbleIoClone.dto.RoomDetails;
 import mecklon.scribbleIoClone.dto.types.GameEventType;
 import mecklon.scribbleIoClone.model.User;
 import mecklon.scribbleIoClone.repository.UserRepository;
@@ -17,6 +18,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -46,16 +48,22 @@ public class GameService {
                 user.getFileName()
         );
 
+        id = userDetails.getDisplayUsername()+":"+id;
         redisTemplate.opsForHash().put(
                 id + ":playerMeta",
                 userDetails.getUsername(),
                 objectMapper.writeValueAsString(newPlayer)
         );
 
-        redisTemplate.opsForHash().put(id + ":info", "host", userDetails.getUsername());
+        redisTemplate.opsForHash().put(id + ":info", "host", user.getId());
         redisTemplate.opsForHash().put(id + ":info", "memberCount", 1+"");
         redisTemplate.opsForHash().put(id + ":info", "status", "LOBBY");
         redisTemplate.opsForHash().put(id + ":info", "createdAt", LocalDateTime.now().toString());
+        redisTemplate.opsForHash().put(id + ":info", "rounds", 3+"");
+        redisTemplate.opsForHash().put(id + ":info", "timePerRound", 40+"");
+        redisTemplate.opsForHash().put(id + ":info", "hostUsername", user.getUsername());
+
+
 
         redisTemplate.opsForZSet().add(id + ":leaderboard", userDetails.getUsername(), 0);
 
@@ -66,11 +74,14 @@ public class GameService {
         return id;
     }
 
-    public List<PlayerDTO> joinRoom(Authentication auth, String roomId){
+    public RoomDetails joinRoom(Authentication auth, String roomId){
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
-
         Long added = redisTemplate.opsForSet().add(roomId + ":members", userDetails.getUsername());
-
+        Map<Object, Object> roomInfo = redisTemplate.opsForHash().entries(roomId+":info");
+        String host = (String)roomInfo.get("host");
+        int rounds = Integer.parseInt((String)roomInfo.get("rounds"));
+        int timePerRound = Integer.parseInt((String)roomInfo.get("timePerRound"));
+        String hostUsername = (String)roomInfo.get("hostUsername");
         if(added==1){
             User user = userRepository.findByEmail(userDetails.getUsername());
 
@@ -116,7 +127,7 @@ public class GameService {
         Set<String> playerEmails = redisTemplate.opsForSet()
                 .members(roomId + ":members");
 
-        List<PlayerDTO> res = new ArrayList<>();
+        List<PlayerDTO> players = new ArrayList<>();
 
         for(String playerEmail: playerEmails){
             String json = (String)
@@ -128,9 +139,8 @@ public class GameService {
                     PlayerDTO.class
             );
 
-            res.add(dto);
+            players.add(dto);
         }
-
-        return res;
+        return new RoomDetails(players, host, rounds, timePerRound, hostUsername);
     }
 }
