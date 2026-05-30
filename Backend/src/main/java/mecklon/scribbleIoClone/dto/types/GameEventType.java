@@ -2,5 +2,13 @@ package mecklon.scribbleIoClone.dto.types;
 
 public enum GameEventType {
     NEW_MEMBER_JOINED,
-    SETTINGS_CHANGED
+    SETTINGS_CHANGED,
+    NEW_MESSAGE,
+    MEMBER_JOINED_GAME,
+    DRAWER_SELECTING_WORD,
+    PLAYER_DISCONNECTED,
+    PLAYERS_SWITCHING_TO_GAME,
+    PLAYER_DRAWING,
+    ROUND_END,
+    GAME_END
 }

@@ -1,0 +1,12 @@
+package mecklon.scribbleIoClone.Exceptions;
+
+public enum GameExceptionType {
+    ROOM_DOES_NOT_EXIST,
+    USER_ALREADY_EXISTS,
+    WORD_LENGTH_VIOLATION,
+    HOST_PRIVILEDGE_NOT_ALLOWED,
+    USER_NOT_PART_OF_GROUP,
+    INVALID_CUSTOM_WORD,
+    USER_NOT_DRAWER,
+    INVALID_WORD
+}

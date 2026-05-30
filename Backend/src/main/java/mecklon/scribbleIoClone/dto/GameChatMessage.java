@@ -1,15 +1,13 @@
 package mecklon.scribbleIoClone.dto;
 
+
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 
 @Data
 @AllArgsConstructor
-@Builder
-public class PlayerDTO {
-    private String id;
+public class GameChatMessage {
+    private String message;
     private String username;
-    private String email;
-    private String profile;
+    private String id;
 }

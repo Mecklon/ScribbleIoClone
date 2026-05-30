@@ -10,23 +10,18 @@ import mecklon.scribbleIoClone.service.GameService;
 import mecklon.scribbleIoClone.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Controller
 @RequiredArgsConstructor
-public class LobbyController {
+public class MainController {
 
     private final UserRepository userRepository;
     private final UserService userService;
@@ -65,4 +60,38 @@ public class LobbyController {
         System.out.println(input);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
+
+    @PostMapping("/startGame")
+    public ResponseEntity<Void> startGame(@RequestBody GameStartRequest request, Authentication auth){
+        gameService.startGame(request, auth);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @GetMapping("/joinGame/{roomId}")
+    public ResponseEntity<RoomSnapshot> joinGame(@PathVariable("roomId") String roomId, Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.joinGame(roomId, auth));
+    }
+
+    @GetMapping("/getRandomWords")
+    public ResponseEntity<List<String>> getRandomWords(Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.getWords(auth));
+    }
+
+    @PostMapping("/chooseWord")
+    public ResponseEntity<Void> chooseWord(@RequestBody Map<String,String> body, Authentication auth){
+        gameService.choseWord(body.get("word"), auth);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @GetMapping("/getCurrentWord")
+    public ResponseEntity<String> getCurrentWord(Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.getCurrentWord(auth));
+    }
+
+
+    @PostMapping("/chatInput")
+    public ResponseEntity<MessageSubmitResponse> saveAndPropogateChatMessage(@RequestBody Map<String,String> body, Authentication auth){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.saveAndPropogateChatMessage(body.get("message"), auth));
+    }
+
 }

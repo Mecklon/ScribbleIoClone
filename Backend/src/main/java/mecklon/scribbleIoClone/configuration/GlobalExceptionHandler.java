@@ -1,5 +1,6 @@
 package mecklon.scribbleIoClone.configuration;
 
+import mecklon.scribbleIoClone.Exceptions.GameException;
 import mecklon.scribbleIoClone.Exceptions.UserAlreadyExistsException;
 import mecklon.scribbleIoClone.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse(
                         "INVALID_CREDENTIALS",
+                        ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(GameException.class)
+    public ResponseEntity<ErrorResponse> handleGameExceptions(
+            GameException ex
+    ) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(new ErrorResponse(
+                        ex.getExceptionType().name(),
                         ex.getMessage()
                 ));
     }
