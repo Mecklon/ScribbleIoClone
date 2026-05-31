@@ -171,7 +171,7 @@ public class GameService {
             redisTemplate.opsForZSet().add(
                     roomId + ":turnOrder",
                     userDetails.getId(),
-                    members
+                    members - 1
             );
             redisTemplate.opsForHash().put(
                     roomId+":playerPoints",
@@ -416,8 +416,8 @@ public class GameService {
         ArrayList<String> listOfCustomWords = new ArrayList<>(customWords);
         ArrayList<String> output = new ArrayList<>();
         if(!wordsFromRedis.isEmpty()){
-            int count = 0;
             output.addAll(wordsFromRedis);
+            System.out.println("old word set: "+output);
             return output;
         }
         for(int i =0;i< 3;i++){
@@ -430,6 +430,7 @@ public class GameService {
                     output.add(listOfCustomWords.get(random.nextInt(listOfCustomWords.size())));
                 }
             }
+            System.out.println("new word set: "+output);
             redisTemplate.opsForSet().add(roomId+":currentWords", output.getLast());
         }
         return output;
@@ -568,16 +569,15 @@ public class GameService {
             // minus one because the drawer cannot submit word, so at most total -1 members can submit correctly
             if(Objects.equals(remainingMembers-1, playerWhoGuessedCorrect)){
                 GameRoomStatus status = GameRoomStatus.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","status"));
+                redisTemplate.delete(roomId+":currentWords");
+                redisTemplate.opsForHash().put(roomId+":info", "currentWord", null);
                 if(status == GameRoomStatus.DRAWING){  // so that there are no clashes with the scheduled events
                     //immediate state updation for minimum scheduled event clash
+                    // below commited code is wrong have set status much later, but creates a window for schedules event to clash
                     //redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
 
                     Set<String> membersSet = redisTemplate.opsForSet().members(roomId+":members");
                     Set<String> exitedMembersSet = redisTemplate.opsForSet().members(roomId+":exitedMembers");
-                    Integer drawerIndex = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info", "drawerIndex"));
-                    System.out.println("drawer index: "+drawerIndex);
-                    drawerIndex++;
-                    Set<String> newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
 
                     Set<ZSetOperations.TypedTuple<String>> roundPoints = redisTemplate.opsForZSet().rangeWithScores(roomId + ":roundPoints", 0, -1);
                     redisTemplate.delete(roomId + ":roundPoints");
@@ -618,19 +618,29 @@ public class GameService {
 
                     // looping through members to get the new available drawer index , if
                     // reached the end of the list then the round ended
+
+                    Integer drawerIndex = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info", "drawerIndex"));
+                    System.out.println("drawer index: "+drawerIndex);
+                    drawerIndex++;
+                    Set<String> newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
+                    boolean reachedEnd = false;
+                    if(newDrawerIdSet.size()==0){
+                        reachedEnd = true;
+                    }
                     String newDrawerId = null;
                     for(String newId: newDrawerIdSet) newDrawerId = newId;
                     System.out.println("new drawer id set: "+newDrawerIdSet);
-                    boolean reachedEnd = false;
-                    while(exitedMembersSet.contains(newDrawerId)){
-                        drawerIndex++;
-                        newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
-                        System.out.println("current newDrawer set: "+newDrawerIdSet);
-                        if(newDrawerIdSet==null || newDrawerIdSet.size()==0){
-                            reachedEnd = true;
-                            break;
+                    if(!reachedEnd){
+                        while(exitedMembersSet.contains(newDrawerId)){
+                            drawerIndex++;
+                            newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
+                            System.out.println("current newDrawer set: "+newDrawerIdSet);
+                            if(newDrawerIdSet==null || newDrawerIdSet.size()==0){
+                                reachedEnd = true;
+                                break;
+                            }
+                            for(String newId: newDrawerIdSet) newDrawerId = newId;
                         }
-                        for(String newId: newDrawerIdSet) newDrawerId = newId;
                     }
                     System.out.println("the end was reached: "+reachedEnd);
                     if(reachedEnd){
@@ -638,8 +648,11 @@ public class GameService {
                         Integer totalRounds = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","rounds"));
                         //check to if the last round ended
                         if(currentRound == totalRounds){
+                            System.out.println("================================");
+                            System.out.println("the game ended sending the event");
+                            System.out.println("================================");
                             phaseDeadLine = (Long)(System.currentTimeMillis()+60_000);
-                            redisTemplate.opsForHash().putAll(roomId+":info",Map.of("phaseDeadLine", phaseDeadLine, "status", GameRoomStatus.ENDED.name()));
+                            redisTemplate.opsForHash().putAll(roomId+":info",Map.of("phaseDeadLine", phaseDeadLine+"", "status", GameRoomStatus.ENDED.name()));
                             messagingTemplate.convertAndSend(
                                     "/topic/room/" + roomId,
                                     GameEventDTO.builder()
@@ -651,11 +664,16 @@ public class GameService {
                             //finding the next available drawer index, hmm probably should add a check over here if the entire list is empty,
                             //the code that deletes the room if all member leave does exist but i guess its still prone to race conditons
                             currentRound++;
-                            redisTemplate.opsForHash().put(roomId+":info","currentRound",currentRound);
+                            redisTemplate.opsForHash().put(roomId+":info","currentRound",currentRound+"");
                             drawerIndex=0;
+                            newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
+                            for(String newId: newDrawerIdSet) newDrawerId = newId;
+
                             while(exitedMembersSet.contains(newDrawerId)){
-                                drawerIndex++;
+                                System.out.println("new dreawer index: "+drawerIndex);
                                 newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
+                                drawerIndex++;
+                                System.out.println("new round: "+newDrawerIdSet);
                                 if(newDrawerIdSet == null || newDrawerIdSet.size()==0){
                                     return new MessageSubmitResponse(currentWord, true);
                                 }
@@ -666,8 +684,13 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","drawerId", newDrawerId);
                             redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                             redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
+                            redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                             Long newPhaseDeadLine = 25_000+System.currentTimeMillis();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", newPhaseDeadLine+"");
+                            System.out.println("================================");
+                            System.out.println("the round ended sending the event");
+                            System.out.println("================================");
+
                             messagingTemplate.convertAndSend(
                                     "/topic/room/" + roomId,
                                     GameEventDTO.builder()
@@ -691,6 +714,7 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","drawerId", newDrawerId);
                             redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                             redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
+                            redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                             Long newPhaseDeadLine = 20_000+System.currentTimeMillis();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", phaseDeadLine+"");
 
@@ -748,6 +772,7 @@ public class GameService {
             }
         }
         System.out.println(mask.toString());
+        System.out.println(correct);
         return new MessageSubmitResponse(mask.toString(), correct);
     }
 }
