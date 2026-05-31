@@ -11,6 +11,8 @@ import Signup from "./Signup";
 import usePostFetch from "./hooks/usePostFetch";
 import { setAuth } from "../store/AuthSlice";
 import RoomLobby from "./RoomLobby";
+import Room from "./Room";
+import Leaderboard from "./Leaderboard";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -48,6 +50,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Menu />}></Route> 
           <Route path="/roomLobby/:roomId" element={<RoomLobby />}></Route> 
+          <Route path="/leaderboard/:roomId" element={<Leaderboard />}></Route> 
+          <Route path="/room/:roomId" element={<Room />}></Route> 
           <Route path="*" element={<Navigate to="/" />}></Route> 
         </Routes>
       ) : (

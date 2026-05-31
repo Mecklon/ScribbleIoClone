@@ -9,6 +9,9 @@ function WebSocketProvider({ children }) {
   ws.onConnect = ()=>{
     setWsConnected(true)
   }
+  ws.onDisconnect = ()=>{
+    "hey disconnected"
+  }
   return (
     <websocketContext.Provider value={{client: ws, wsConnected}}>{children}</websocketContext.Provider>
   );

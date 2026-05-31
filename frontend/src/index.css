@@ -4,3 +4,10 @@
 body{
   margin: 0px;
 }
+
+.noScrollBar::-webkit-scrollbar{
+  width: 0;
+}
+.messages > div:nth-child(2n){
+  background-color: rgba(0, 0, 0, 0.281);
+}

@@ -4,15 +4,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import useGetFetch from "./hooks/useGetFetch";
 import Image from "./hooks/Image";
 import { useSelector } from "react-redux";
+import rolling from './assets/rolling.gif';
+import usePostFetch from "./hooks/usePostFetch";
 function RoomLobby() {
 
 
     const auth= useSelector(store=>store.auth)
-    console.log(auth)
 
     const {roomId} = useParams();
 
     const {loading, error, fetch} = useGetFetch();
+    const {loading: startingGame, error: gameStartError, fetch:startGameFetch} = usePostFetch();
     
     const navigate = useNavigate();
 
@@ -29,6 +31,11 @@ function RoomLobby() {
     const timeInputRef = useRef();
     const roundInputRef = useRef();
 
+    const customWordsInputRef = useRef();
+    const checkBoxRef = useRef();
+
+    const [customWordsError,setCustomWordError] = useState(null);
+
     useEffect(() => {
         if (!wsConnected) return;
         if (!roomId) {
@@ -40,7 +47,6 @@ function RoomLobby() {
             "/topic/room/" + roomId,(payload) => {
 
                 const event = JSON.parse(payload.body)
-                console.log(event)
                 if(event.type === "NEW_MEMBER_JOINED"){
                     if (event.initiator === auth.username) return;
                     setPlayers(prev => [
@@ -51,13 +57,13 @@ function RoomLobby() {
                     if(event.data.rounds!=rounds){
                         setRounds(event.data.rounds)
                     }
-                    console.log("time",event.data.timePerRound)
-                    console.log(event.data.timePerRound!=timePerRound)
+                    (event.data.timePerRound!=timePerRound)
                     if(event.data.timePerRound!=timePerRound){
-                        console.log("setting to",event.data.timePerRound)
                         setTimePerRound(event.data.timePerRound)
                     }
-                }   
+                }else if(event.type === "PLAYERS_SWITCHING_TO_GAME" && host!==auth.id){
+                    navigate("/room/"+roomId);
+                }
             }
         );
         const join = async () => {
@@ -70,13 +76,11 @@ function RoomLobby() {
         join();
         return () => sub.unsubscribe();
     }, [wsConnected, roomId]);
-    console.log(host)
-    console.log("sj:",timePerRound)
+   
 
     const handleMouseOver = ()=>{
         linkRef.current.innerText = "http://localhost:5173/roomLobby/"+roomId
     }
-    console.log(players)
 
     const handleMouseLeave = ()=>{
         linkRef.current.innerText = "hover your mouse to get the link"
@@ -92,6 +96,44 @@ function RoomLobby() {
                 roomId
             }),
         });
+    }
+
+    const startGame = async()=>{
+
+        setCustomWordError(null)
+        const validLetterTest = /^[a-zA-Z ]+$/;
+
+        if (customWordsInputRef.current.value.trim()!=0) {
+            const words = customWordsInputRef.current.value
+                .toLowerCase()
+                .split(",")
+                .map(word => word.trim())
+                .filter(word => word.length > 0);
+
+            
+            for (let i = 0; i < words.length; i++) {
+                if ( words[i].length > 20) {
+                    setCustomWordError(words[i]+" greater then 20 characters in length")
+                    return
+                }
+                if (words[i].length < 3 ) {
+                    setCustomWordError(words[i]+" is smaller than 3 characters in length")
+                    return
+                }
+                if(!validLetterTest.test(words[i])){
+                    setCustomWordError("\""+words[i]+"\" contains special character, not allowed")
+                    return
+                }
+            }
+        }   
+        await startGameFetch("/startGame",{
+            roomId,
+            timePerRound: timeInputRef.current.value,
+            rounds: roundInputRef.current.value,
+            customWords: customWordsInputRef.current.value.toUpperCase().trim(),
+            onlyCustomWords: checkBoxRef.current.checked
+        })
+        navigate("/room/"+roomId);
     }
     
   return (
@@ -135,15 +177,23 @@ function RoomLobby() {
                     <option value="120">120</option>
                 </select>
                 <div className="text-2xl font-semibold py-1">Custom words</div>
-                <textarea name="" placeholder="type in you custom words seperated by columns (minimum length of 3 characters and maximum of 20 words)" className="border border-stone-700 p-2 w-full text-xl resize-none h-70" id="">
+                <textarea name="" ref={customWordsInputRef} placeholder="type in you custom words seperated by columns (minimum length of 3 characters and maximum of 20 words)" className="border border-stone-700 p-2 w-full text-xl resize-none h-70" id="">
                     
                 </textarea>
+                {
+                    customWordsError &&
+                    <div className="text-red-600 text-md">{customWordsError}</div>
+                }
                 <label className="gap-2 mb-2 flex items-center font-semibold" htmlFor="check">
                     Use custom words only
-                    <input id="check" type="checkbox" />
+                    <input ref={checkBoxRef} id="check" type="checkbox" />
                 </label>
-                <button className="text-center bg-green-600 text-white text-4xl rounded-md p-2 px-4 w-full">
+                <button disabled={startingGame} onClick={startGame} className="text-center flex justify-center items-center gap-3 bg-green-600 text-white text-4xl rounded-md p-2 px-4 w-full">
                     Start Game
+                    {
+                        startingGame &&
+                        <img src={rolling} className="h-10" alt="" />
+                    }
                 </button>
             </div>
         </div>
