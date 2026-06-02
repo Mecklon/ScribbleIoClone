@@ -135,6 +135,9 @@ function RoomLobby() {
         })
         navigate("/room/"+roomId);
     }
+
+
+
     
   return (
     <div className="p-5 flex flex-col gap-5 h-screen bg-red-500">
@@ -175,6 +178,7 @@ function RoomLobby() {
                     <option value="100">100</option>
                     <option value="110">110</option>
                     <option value="120">120</option>
+                    <option value="10000">10000</option>
                 </select>
                 <div className="text-2xl font-semibold py-1">Custom words</div>
                 <textarea name="" ref={customWordsInputRef} placeholder="type in you custom words seperated by columns (minimum length of 3 characters and maximum of 20 words)" className="border border-stone-700 p-2 w-full text-xl resize-none h-70" id="">

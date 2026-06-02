@@ -11,6 +11,68 @@ import { RiWifiOffLine } from "react-icons/ri";
 import { useSelector } from "react-redux";
 import { button, div } from "motion/react-client";
 import { RxDividerVertical } from "react-icons/rx";
+import { FaPencilAlt } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
+import { LuPaintBucket } from "react-icons/lu";
+import { IoMdColorFill } from "react-icons/io";
+
+const colors = [
+    "#808080",
+    "#A9A9A9",
+    "#D3D3D3",
+    "#F5F5F5",
+    "black",
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "indigo",
+    "violet",
+    "brown",
+    "pink",
+    "cyan",
+    "lime",
+    "teal",
+    "navy",
+    "maroon",
+    "gold"
+];
+
+const isSame = (idx ,color, pixels) => {
+    const [r2, g2, b2, a2] = color
+    const r = pixels[idx];
+    const g = pixels[idx + 1];
+    const b = pixels[idx + 2];
+    const a = pixels[idx + 3];
+    return r === r2 && g === g2 && b === b2 && a === a2;
+};
+
+const setColor = (color, pixels, idx) => {
+    const [r, g, b, a] = color
+
+    pixels[idx] = r;
+    pixels[idx + 1] = g;
+    pixels[idx + 2] = b;
+    pixels[idx + 3] = a;
+};
+
+const floodFillIterative = (pixels, x , y , oldColor, newColor)=>{
+    const queue = [[x,y]];
+    
+    while(queue.length!=0){
+    const [currX, currY] = queue.pop();
+    if(currX === -1 || currY === -1 || currX === 1000 || currY === 1000)continue;
+    const idx = (currY * 1000 + currX)*4;
+    if(!isSame(idx, oldColor, pixels))continue;
+        setColor(newColor, pixels, idx)
+        queue.push([currX-1,currY])
+        queue.push([currX,currY-1])
+        queue.push([currX+1,currY])
+        queue.push([currX,currY+1])    
+    }
+}
+
 
 function Room() {
 
@@ -33,7 +95,17 @@ function Room() {
             currentWord: null,
             currentHiddenWord:null,
         })
+    const drawerIdRef = useRef(roomState.drawerId)
+    useEffect(()=>{
+        drawerIdRef.current = roomState.drawerId
+    },[roomState.drawerId])
+
     const auth = useSelector(store=>store.auth)
+    const authIdRef = useRef(auth.id)
+    useEffect(()=>{
+        authIdRef.current = auth.id
+    },[auth.id])
+
     const [words, setWords] = useState([])
     const {error:wordsLoadingError, loading:wordsLoading , fetch:fetchWords} = useGetFetch();
     const {error:wordLoadingError, loading:wordLoading , fetch:fetchWord} = useGetFetch();
@@ -56,7 +128,6 @@ function Room() {
             const sub = client.subscribe(
                 "/topic/room/" + roomId,(payload) => {
                     const event = JSON.parse(payload.body)
-
                     if(bufferEvents.current===true){
                         eventBuffer.current.push(event)
                         return;
@@ -109,6 +180,8 @@ function Room() {
                                     currentHiddenWord:null
                                 }
                         })
+                        const ctx = canvasRef.current.getContext("2d");
+                        ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
                         let newEvents = [];
                         if("points" in event.data){
                             newEvents.push({
@@ -145,7 +218,6 @@ function Room() {
                                 currentHiddenWord:null,
                                 currentRound:event.data.newRoundIndex
                             }
-                            console.log("round end: ", data.drawer, data.drawerId, auth.id, auth.id === data.drawerId)
                         })
                         let newEvents = [];
                         newEvents.push({
@@ -160,15 +232,52 @@ function Room() {
                         })
                         setEvents(newEvents)
                         setEventIndex(0)
+                    }else if(event.type === "CANVAS_EVENT"){
+                        if(authIdRef.current === drawerIdRef.current)return;
+                        const events = event.data;
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext("2d",{ willReadFrequently: true });
+                        ctx.lineCap = "round";
+                        ctx.lineJoin = "round";
+                        for(let i = 0;i< events.length;i++){
+                            let canvasEvent = events[i];
+                            if(canvasEvent.type === "STROKE"){
+                                if(ctx.lineWidth!== canvasEvent.lineWidth || ctx.strokeStyle!==canvasEvent.color){
+                                    ctx.stroke();
+                                    ctx.beginPath()
+                                    ctx.lineWidth = canvasEvent.lineWidth
+                                    ctx.strokeStyle = canvasEvent.color
+                                }
+
+                                ctx.moveTo(canvasEvent.from.x, canvasEvent.from.y);   
+                                ctx.lineTo(canvasEvent.to.x, canvasEvent.to.y); 
+                                
+                            }else{
+                                ctx.stroke();
+
+
+                                const x = canvasEvent.from.x
+                                const y = canvasEvent.from.y
+
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const pixels = imageData.data;
+
+                                const oldColors = canvasEvent.fillColors.oldColor
+                                const newColors = canvasEvent.fillColors.newColor
+
+                                floodFillIterative(pixels, x,y,oldColors, newColors)
+                                ctx.putImageData(imageData, 0, 0);
+
+                                ctx.beginPath();                            
+                            }
+                        }
+                        ctx.stroke()
                     }else if(event.type === "GAME_END"){
-                        console.log("game ended routing to leaderboard")
-                        console.log("leaderboard/"+roomId)
                         navigate("/leaderboard/"+roomId)
                     }
                 }
             );
             const join = async () => {
-                // remember to account for the the base snapshot changing the slide events
                 bufferEvents.current = true;
                 let data = await fetch("joinGame/"+roomId)
                 bufferEvents.current = false;
@@ -211,6 +320,10 @@ function Room() {
                             currentHiddenWord:null
                         }
                         newEvents = []
+
+                        const ctx = canvasRef.current.getContext("2d");
+                        ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                        
                         if("points" in event.data){
                             newEvents.push({
                                 type:"POINTS",
@@ -252,6 +365,9 @@ function Room() {
                         newEvents.push({
                             type:"DRAWER_INTRO",
                         })
+                    }else if(event.type === "CANVAS_EVENT"){
+                        data.canvasEvents.push(event.data)
+
                     }else if(event.type === "GAME_END"){
                         game.status = "ENDED"
                     }   
@@ -259,6 +375,48 @@ function Room() {
 
                 if(data.status === "ENDED"){
                     navigate("/leaderboard/"+roomId)
+                }
+
+                if(data.canvasEvents.length!=0){
+                    console.log("redrawing")
+                    const canvasEvents = data.canvasEvents
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext("2d",{ willReadFrequently: true });
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+
+                    for(let i =0;i< canvasEvents.length;i++){
+                        let canvasEvent = canvasEvents[i];
+                        if(canvasEvent.type === "STROKE"){
+                            if(ctx.lineWidth!== canvasEvent.lineWidth || ctx.strokeStyle!==canvasEvent.color){
+                                ctx.stroke();
+                                ctx.beginPath()
+                                ctx.lineWidth = canvasEvent.lineWidth
+                                ctx.strokeStyle = canvasEvent.color
+                            }
+
+                            ctx.moveTo(canvasEvent.from.x, canvasEvent.from.y);   
+                            ctx.lineTo(canvasEvent.to.x, canvasEvent.to.y); 
+                            
+                        }else{
+                            ctx.stroke();
+
+
+                            const x = canvasEvent.from.x
+                            const y = canvasEvent.from.y
+
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const pixels = imageData.data;
+
+                            const oldColors = canvasEvent.fillColors.oldColor
+                            const newColors = canvasEvent.fillColors.newColor
+
+                            floodFillIterative(pixels, x,y,oldColors, newColors)
+                            ctx.putImageData(imageData, 0, 0);
+
+                            ctx.beginPath();                            
+                        }
+                    }
                 }
 
                 eventBuffer.current = []
@@ -317,7 +475,6 @@ function Room() {
         const handleRoomStateChange = async()=>{
             if(roomState.status==null)return;
             if(roomState.status=="DRAWER_SELECTING_WORD" && roomState.drawerId==auth.id){
-                console.log("my turn getting")
                 const data = await fetchWords("/getRandomWords")
                 setWords(data);
             }else if(roomState.status=="PLAYER_DRAWING" && roomState.drawerId==auth.id  && roomState.currentWord === null){
@@ -338,7 +495,6 @@ function Room() {
         if(e.code!=="Enter")return;
         if(e.target.value.trim() ==="")return;
         const data = await fetchSendWord("/chatInput", {message:e.target.value})
-        console.log(data)
         let mask = data.mask;
         if(mask.length!==0){
             setRoomState((prev)=>{
@@ -363,6 +519,141 @@ function Room() {
     const chooseWord = async(word)=>{
         await fetchChooseWord('/chooseWord', {word})
     }
+
+
+    
+    // canvas 
+
+
+    const canvasRef = useRef(null);
+    const cursorSize= useRef(4)
+    const color = useRef("black")
+    const mode = useRef("STROKE")
+    const canvasEvent = useRef([])
+    const {fetch: sendCanvasEvents} = usePostFetch()
+    const sendingEvents = useRef(false)
+
+    useEffect(()=>{
+        if(roomState.status !== "PLAYER_DRAWING" || roomState.drawerId !== auth.id) return;
+        const signal = setInterval(async() => {
+            if(canvasEvent.current.length===0 || sendingEvents.current )return;
+            sendingEvents.current = true
+            const batch = canvasEvent.current;
+            canvasEvent.current = []
+            let data = null;
+            try {
+                data = await sendCanvasEvents("/sendCanvasEvents", batch);
+            }catch {
+                canvasEvent.current.unshift(...batch);
+            }finally {
+                sendingEvents.current = false;
+            }
+        }, 600);
+
+        return ()=>{
+            clearInterval(signal)
+        }
+    },[roomState.drawerId, auth.id, roomState.status])
+
+    useEffect(()=>{
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext("2d",{ willReadFrequently: true });
+            let oldX=0;
+            let oldY=0;
+            let isMouseDown = false;
+            const tempCanvas = document.createElement("canvas");
+
+            const mouseDownEvent = (e)=>{
+                if(mode.current === "STROKE"){
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+                    oldX = e.offsetX/canvas.clientWidth*canvas.width
+                    oldY = e.offsetY/canvas.clientHeight*canvas.height
+                    isMouseDown = true;
+                    ctx.beginPath();
+                }else{
+                    const x = Math.round(e.offsetX / canvas.clientWidth * canvas.width);
+                    const y = Math.round(e.offsetY / canvas.clientHeight * canvas.height);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+
+                    const idx = (y * canvas.width + x) * 4;
+
+                    const r = pixels[idx];
+                    const g = pixels[idx + 1];
+                    const b = pixels[idx + 2];
+                    const a = pixels[idx + 3];
+
+                    const oldColors = [r,g,b,a]
+                    tempCanvas.width = 1;
+                    tempCanvas.height = 1;
+                    
+                    const tempCtx = tempCanvas.getContext("2d",{ willReadFrequently: true });
+                    tempCtx.fillStyle = color.current;
+                    tempCtx.fillRect(0, 0, 1, 1);
+                    
+                    const newColors = Array.from(tempCtx.getImageData(0, 0, 1, 1).data);
+                    
+                    if (
+                        oldColors[0] === newColors[0] &&
+                        oldColors[1] === newColors[1] &&
+                        oldColors[2] === newColors[2] &&
+                        oldColors[3] === newColors[3]
+                    ) {
+                        return;
+                    }
+                    canvasEvent.current.push({
+                        type:"FILL",
+                        from:{
+                            x,
+                            y
+                        },
+                        fillColors:{
+                            oldColor: oldColors,
+                            newColor: newColors
+                        }
+                    })
+                    floodFillIterative(pixels, x,y,oldColors, newColors)
+                    ctx.putImageData(imageData, 0, 0);
+
+                }
+            }
+            const mouseUpOrMoueLeaveEvent = (e)=>{
+                isMouseDown = false;
+            }
+            const mouseMoveEvent = (e)=>{
+                if(!isMouseDown || mode.current === "FILL")return
+                ctx.moveTo(oldX, oldY);   
+                ctx.lineCap = "round";
+                ctx.lineWidth = cursorSize.current
+                ctx.strokeStyle = color.current;
+                ctx.lineJoin = "round";
+
+                canvasEvent.current.push({
+                    type:"STROKE",
+                    color: color.current,
+                    lineWidth: cursorSize.current,
+                    from:{
+                        x: oldX, y:oldY
+                    },
+                    to:{
+                        x: e.offsetX/canvas.clientWidth*canvas.width,
+                        y: e.offsetY/canvas.clientHeight*canvas.height
+                    },
+                })
+                
+                oldX = e.offsetX/canvas.clientWidth*canvas.width
+                oldY = e.offsetY/canvas.clientHeight*canvas.height
+                ctx.lineTo(oldX, oldY);   
+                ctx.stroke()  
+            }
+            canvas.addEventListener("mousedown", mouseDownEvent)
+            canvas.addEventListener("mouseup", mouseUpOrMoueLeaveEvent)
+            canvas.addEventListener("mouseleave", mouseUpOrMoueLeaveEvent)
+            canvas.addEventListener("mousemove",mouseMoveEvent)
+
+    },[])
    
   return (
     <div className="py-7 px-5 flex flex-col gap-3 h-screen">
@@ -442,7 +733,64 @@ function Room() {
                         }
                     </div>
                 }
+                <canvas  
+                        ref={canvasRef} 
+                        height="600" width="1000" 
+                        className={`w-full bg-white ${(auth.id !== null && roomState.drawerId === auth.id) ?  "pointer-events-auto" : "pointer-events-none"}`}>
+                </canvas>
+                <div className={`bg-white  mt-2 gap-2 flex justify-center ${auth.id !== null && roomState.drawerId === auth.id ?  "pointer-events-auto" : "pointer-events-none"}`}>
+                    <div className="h-14 w-14 aspect-square bg-blue-600">
+                            
+                    </div>
+                    <div>
+                        <div className="flex">
+                            {colors.slice(0, 10).map((c) => (
+                                <div
+                                    key={c}
+                                    className="h-7 w-7 border border-gray-300 cursor-pointer"
+                                    style={{ backgroundColor: c }}
+                                    onClick={() => {
+                                        color.current = c;
+                                    }}
+                                />
+                            ))}
+                        </div>
 
+                        <div className="flex">
+                            {colors.slice(10).map((c) => (
+                                <div
+                                    key={c}
+                                    className="h-7 w-7 border border-gray-300 cursor-pointer"
+                                    style={{ backgroundColor: c }}
+                                    onClick={() => {
+                                        color.current = c;
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div onClick={()=>{mode.current = "STROKE"}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <FaPencilAlt className="text-4xl"/>
+                    </div>
+                    <div onClick={()=>{mode.current = "FILL"}}  className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <IoMdColorFill className="text-4xl"/>
+                    </div>
+                    <div onClick={()=>{cursorSize.current = 4}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <div className="h-4 w-4 bg-black rounded-full"></div>
+                    </div>
+                    <div onClick={()=>{cursorSize.current = 8}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <div className="h-6 w-6 bg-black rounded-full"></div>
+                    </div>
+                    <div onClick={()=>{cursorSize.current = 18}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <div className="h-8 w-8 bg-black rounded-full"></div>
+                    </div>
+                    <div onClick={()=>{
+                            const ctx = canvasRef.current.getContext("2d");
+                            ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                    }} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
+                        <RiDeleteBin6Line  className="text-4xl"/>
+                    </div>
+                </div>
         </div>
         <div className="w-100 bg-red-700 gap-2 p-2 flex shrink-0 flex-col h-full">
             <div className="bg-red-800 grow min-h-0 overflow-auto noScrollBar flex flex-col-reverse text-xl p-1">
