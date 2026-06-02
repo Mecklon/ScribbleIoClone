@@ -25,4 +25,5 @@ public class RoomSnapshot {
     private String drawerId;
     private String currentWord;
     private String currentHiddenWord;
+    private List<CanvasEvent> canvasEvents;
 }

@@ -83,6 +83,8 @@ public class GameService {
 
     String codeReference = "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
 
+
+
     public String createRoom(Authentication auth) {
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
 
@@ -310,6 +312,7 @@ public class GameService {
             GameRoomStatus gameStatus = GameRoomStatus.valueOf((String)redisTemplate.opsForHash().get(roomId + ":info", "status"));
             if(gameStatus == GameRoomStatus.PLAYERS_SWITCHING_TO_GAME && Objects.equals(totalSize, currentSize)){
                 redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
+                redisTemplate.delete(roomId+":canvasEvents");
                 Long newDeadLine = System.currentTimeMillis()+20_000;
                 redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", String.valueOf(newDeadLine));
                 String drawerId=null;
@@ -407,7 +410,13 @@ public class GameService {
             currentHiddenWord = currentWord.replaceAll("[^\\s]", "_");
         }
 
-        return new RoomSnapshot(players, host, hostUsername, rounds, timePerRound, chats, gameStatus, phaseDeadLine, currentRound, drawer, drawerId,null, currentHiddenWord);
+        List<String> canvasEventStrings = redisTemplate.opsForList().range(roomId+":canvasEvents",0,-1);
+        List<CanvasEvent> canvasEvents = new ArrayList<>();
+        for(String s: canvasEventStrings){
+            canvasEvents.add(objectMapper.readValue(s, CanvasEvent.class));
+        }
+
+        return new RoomSnapshot(players, host, hostUsername, rounds, timePerRound, chats, gameStatus, phaseDeadLine, currentRound, drawer, drawerId,null, currentHiddenWord, canvasEvents);
 
     }
 
@@ -685,6 +694,7 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                             redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
                             redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
+                            redisTemplate.delete(roomId+":canvasEvents");
                             Long newPhaseDeadLine = 25_000+System.currentTimeMillis();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", newPhaseDeadLine+"");
                             System.out.println("================================");
@@ -715,6 +725,8 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                             redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
                             redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
+                            redisTemplate.delete(roomId+":canvasEvents");
+
                             Long newPhaseDeadLine = 20_000+System.currentTimeMillis();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", phaseDeadLine+"");
 
@@ -774,6 +786,48 @@ public class GameService {
         System.out.println(mask.toString());
         System.out.println(correct);
         return new MessageSubmitResponse(mask.toString(), correct);
+    }
+
+    public  void saveAndPropogateCanvasEvents(List<CanvasEvent> events, Authentication auth) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+
+        String roomId = redisTemplate.opsForValue().get(userDetails.getId()+":room");
+        if(roomId==null){
+            throw new GameException(HttpStatus.FORBIDDEN, GameExceptionType.USER_NOT_PART_OF_GROUP, "Your are not part of a group");
+        }
+
+        List<Object> values =redisTemplate.opsForHash().multiGet(roomId + ":info",List.of("status", "drawerId"));
+
+        GameRoomStatus status = GameRoomStatus.valueOf((String)values.getFirst());
+        String drawerId = (String)values.getLast();
+
+        if(status == null || drawerId == null){
+            throw new GameException(HttpStatus.FORBIDDEN, null, "invalid request");
+        }
+
+        if(status != GameRoomStatus.DRAWING){
+            throw new GameException(HttpStatus.FORBIDDEN, GameExceptionType.ROOM_STATE_MISSMATCH, "room not in drawing phase");
+        }
+
+        if(!drawerId.equals(userDetails.getId())){
+            throw new GameException(HttpStatus.FORBIDDEN, GameExceptionType.USER_NOT_DRAWER, "you are not the drawer");
+        }
+
+        List<String> serializedEvents = events.stream()
+                .map(objectMapper::writeValueAsString)
+                .toList();
+
+        redisTemplate.opsForList().rightPushAll(roomId+":canvasEvents", serializedEvents);
+
+        messagingTemplate.convertAndSend(
+                "/topic/room/" + roomId,
+                GameEventDTO.builder()
+                        .initiator(new PlayerDTO(userDetails.getId(),userDetails.getDisplayUsername(), null,null))
+                        .type(GameEventType.CANVAS_EVENT)
+                        .data(events)
+                        .build()
+        );
+
     }
 }
 

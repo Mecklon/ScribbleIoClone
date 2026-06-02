@@ -8,5 +8,6 @@ public enum GameExceptionType {
     USER_NOT_PART_OF_GROUP,
     INVALID_CUSTOM_WORD,
     USER_NOT_DRAWER,
-    INVALID_WORD
+    INVALID_WORD,
+    ROOM_STATE_MISSMATCH
 }

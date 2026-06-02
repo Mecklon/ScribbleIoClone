@@ -302,7 +302,25 @@ public class ScheduledEventManager {
                 }
 
             }else if(status == GameRoomStatus.ENDED){
-                // nuke everything in redis with the prefix {roomid}
+                List<String> keys = List.of(
+                        roomId+":leaderboard",
+                        roomId+":members",
+                        roomId+":info",
+                        roomId+":playerMeta",
+                        roomId+":playersInGame",
+                        roomId+":playerPoints",
+                        roomId+":offlineSince",
+                        roomId+":currentWords",
+                        roomId+":chat",
+                        roomId+":turnOrder",
+                        roomId+":customWords",
+                        roomId+":canvasEvents",
+                        roomId+":exitedMembers",
+                        roomId+":roundPoints"
+                );
+                if(keys != null && !keys.isEmpty()){
+                    redisTemplate.delete(keys);
+                }
             }
         }
     }

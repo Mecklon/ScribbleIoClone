@@ -10,5 +10,6 @@ public enum GameEventType {
     PLAYERS_SWITCHING_TO_GAME,
     PLAYER_DRAWING,
     ROUND_END,
-    GAME_END
+    GAME_END,
+    CANVAS_EVENT
 }

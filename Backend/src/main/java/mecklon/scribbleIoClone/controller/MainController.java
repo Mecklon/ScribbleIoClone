@@ -94,4 +94,10 @@ public class MainController {
         return ResponseEntity.status(HttpStatus.OK).body(gameService.saveAndPropogateChatMessage(body.get("message"), auth));
     }
 
+    @PostMapping("/sendCanvasEvents")
+    public ResponseEntity<Void> saveAndPropogateCanvasEvents(@RequestBody List<CanvasEvent> events, Authentication auth){
+        gameService.saveAndPropogateCanvasEvents(events, auth);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
 }
