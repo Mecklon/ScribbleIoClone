@@ -102,7 +102,7 @@ function menu() {
           {img ? (
             <img src={img} className="h-90 w-90 rounded-full" />
           ) : (
-            <Image path={auth.profile} className="h-90 w-90 rounded-full" fallback={avatar} />
+            <Image path={auth.profile} className="h-90 w-90 rounded-full" fallback={avatar} /> 
           )}
         </label>
         <input

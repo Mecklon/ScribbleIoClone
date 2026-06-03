@@ -100,4 +100,10 @@ public class MainController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
+
+    @GetMapping("/leaderboard/{roomId}")
+    public ResponseEntity<List<PlayerWithPoints>> getLeaderboard(@PathVariable("roomId") String roomId){
+        return ResponseEntity.status(HttpStatus.OK).body(gameService.getLeaderboard(roomId));
+    }
+
 }

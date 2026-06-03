@@ -182,6 +182,7 @@ function Room() {
                         })
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                        ctx.beginPath()
                         let newEvents = [];
                         if("points" in event.data){
                             newEvents.push({
@@ -219,6 +220,9 @@ function Room() {
                                 currentRound:event.data.newRoundIndex
                             }
                         })
+                        const ctx = canvasRef.current.getContext("2d");
+                        ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                        ctx.beginPath()
                         let newEvents = [];
                         newEvents.push({
                             type:"NEW_ROUND"
@@ -323,7 +327,8 @@ function Room() {
 
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
-                        
+                        ctx.beginPath()
+
                         if("points" in event.data){
                             newEvents.push({
                                 type:"POINTS",
@@ -354,6 +359,9 @@ function Room() {
                                 currentHiddenWord:null,
                                 currentRound:event.data.newRoundIndex
                             }
+                        const ctx = canvasRef.current.getContext("2d");
+                        ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                        ctx.beginPath()
                         newEvents = [];
                         newEvents.push({
                             type:"NEW_ROUND"
@@ -787,6 +795,7 @@ function Room() {
                     <div onClick={()=>{
                             const ctx = canvasRef.current.getContext("2d");
                             ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                            ctx.beginPath()
                     }} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
                         <RiDeleteBin6Line  className="text-4xl"/>
                     </div>

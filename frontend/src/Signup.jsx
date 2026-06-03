@@ -39,9 +39,11 @@ function Signup() {
             setPasswordError({message: "atleast one small letter, one capital letter, one digit, one special character and minimum of 8 characters"})
             hasError = true;
         }
-        if(username.length<6){
-            setUsernameError({message:"username should be atleast 6 characters long"})
-            hasError = true
+        const usernameRegex = /^[A-Za-z0-9_ ]{3,30}$/;
+        
+        if (!usernameRegex.test(username)) {
+            setUsernameError({message:"Username must be 3-30 characters and contain only letters, numbers, spaces, and underscores"});
+            hasError = true;
         }
         if(email===null || email===""){
             setEmailError({message:"Enter a email"})
@@ -55,6 +57,7 @@ function Signup() {
             setUsernameError({message :"Enter your username"})
             hasError = true;
         }
+        
         if(hasError)return;
 
         const data = await fetch("auth/signup",{

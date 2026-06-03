@@ -3,16 +3,19 @@ package mecklon.scribbleIoClone.service;
 import lombok.RequiredArgsConstructor;
 import mecklon.scribbleIoClone.Exceptions.GameException;
 import mecklon.scribbleIoClone.Exceptions.GameExceptionType;
+import mecklon.scribbleIoClone.configuration.GamePropertiesService;
 import mecklon.scribbleIoClone.dto.*;
 import mecklon.scribbleIoClone.dto.types.GameEventType;
 import mecklon.scribbleIoClone.model.User;
 import mecklon.scribbleIoClone.repository.UserRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.security.SecureRandom;
@@ -27,6 +30,7 @@ public class GameService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
+    private final GamePropertiesService gamePropertiesService;
 
     String[] words = {
             "apple",
@@ -124,7 +128,7 @@ public class GameService {
 
         redisTemplate.opsForHash().put(id+":playerPoints", user.getId(),0+"");
 
-        redisTemplate.opsForZSet().add(id + ":leaderboard", userDetails.getUsername(), 0);
+        redisTemplate.opsForZSet().add(id + ":leaderboard", userDetails.getId(), 0);
 
         redisTemplate.opsForSet().add(id + ":members", userDetails.getId());
 
@@ -166,7 +170,7 @@ public class GameService {
 
             redisTemplate.opsForZSet().add(
                     roomId + ":leaderboard",
-                    userDetails.getUsername(),
+                    userDetails.getId(),
                     0
             );
 
@@ -263,7 +267,7 @@ public class GameService {
         redisTemplate.opsForHash().put(request.getRoomId() + ":info", "customWordsOnly", String.valueOf(request.getOnlyCustomWords()));
         redisTemplate.opsForSet().add(request.getRoomId() + ":playersInGame", userDetails.getId());
 
-        Long phaseDeadLine = System.currentTimeMillis() + 25_000;
+        Long phaseDeadLine = gamePropertiesService.getLobbySwitchDeadline();
         redisTemplate.opsForHash().put(request.getRoomId() + ":info", "phaseDeadLine", String.valueOf(phaseDeadLine));
 
         messagingTemplate.convertAndSend(
@@ -313,7 +317,7 @@ public class GameService {
             if(gameStatus == GameRoomStatus.PLAYERS_SWITCHING_TO_GAME && Objects.equals(totalSize, currentSize)){
                 redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                 redisTemplate.delete(roomId+":canvasEvents");
-                Long newDeadLine = System.currentTimeMillis()+20_000;
+                Long newDeadLine = gamePropertiesService.getDrawerSelectDeadline();
                 redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", String.valueOf(newDeadLine));
                 String drawerId=null;
                 Integer drawerIndex = null;
@@ -660,7 +664,7 @@ public class GameService {
                             System.out.println("================================");
                             System.out.println("the game ended sending the event");
                             System.out.println("================================");
-                            phaseDeadLine = (Long)(System.currentTimeMillis()+60_000);
+                            phaseDeadLine = gamePropertiesService.GameDropDeadline();
                             redisTemplate.opsForHash().putAll(roomId+":info",Map.of("phaseDeadLine", phaseDeadLine+"", "status", GameRoomStatus.ENDED.name()));
                             messagingTemplate.convertAndSend(
                                     "/topic/room/" + roomId,
@@ -695,7 +699,7 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
                             redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                             redisTemplate.delete(roomId+":canvasEvents");
-                            Long newPhaseDeadLine = 25_000+System.currentTimeMillis();
+                            Long newPhaseDeadLine = gamePropertiesService.getRoundEndDeadline();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", newPhaseDeadLine+"");
                             System.out.println("================================");
                             System.out.println("the round ended sending the event");
@@ -727,7 +731,7 @@ public class GameService {
                             redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                             redisTemplate.delete(roomId+":canvasEvents");
 
-                            Long newPhaseDeadLine = 20_000+System.currentTimeMillis();
+                            Long newPhaseDeadLine = gamePropertiesService.getDrawerSelectDeadline();
                             redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", phaseDeadLine+"");
 
                             messagingTemplate.convertAndSend(
@@ -828,6 +832,34 @@ public class GameService {
                         .build()
         );
 
+    }
+
+    public List<PlayerWithPoints> getLeaderboard(String roomId) {
+        String calculatedLeaderboard = (String)redisTemplate.opsForHash().get(roomId+":info","calculatedLeaderboard");
+        if(calculatedLeaderboard!=null){
+            return objectMapper.readValue(calculatedLeaderboard,  new TypeReference<List<PlayerWithPoints>>() {});
+        }
+        Set<ZSetOperations.TypedTuple<String>> leaderBoardSet = redisTemplate.opsForZSet().reverseRangeWithScores(roomId + ":leaderboard", 0, -1);
+        if (leaderBoardSet == null || leaderBoardSet.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<PlayerWithPoints> leaderBoard = new ArrayList<>();
+        for(ZSetOperations.TypedTuple<String> entry : leaderBoardSet){
+            String json = (String)
+                    redisTemplate.opsForHash()
+                            .get(roomId + ":playerMeta", entry.getValue());
+            if(json==null){
+                continue;
+            }
+            PlayerDTO dto = objectMapper.readValue(
+                    json,
+                    PlayerDTO.class
+            );
+            leaderBoard.add(new PlayerWithPoints(dto.getId(), dto.getUsername(), dto.getProfile(), entry.getScore()));
+        }
+
+        redisTemplate.opsForHash().put(roomId+":info", "calculatedLeaderboard", objectMapper.writeValueAsString(leaderBoard));
+        return leaderBoard;
     }
 }
 

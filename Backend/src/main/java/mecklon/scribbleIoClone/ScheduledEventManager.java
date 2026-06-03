@@ -2,6 +2,7 @@ package mecklon.scribbleIoClone;
 
 
 import lombok.RequiredArgsConstructor;
+import mecklon.scribbleIoClone.configuration.GamePropertiesService;
 import mecklon.scribbleIoClone.dto.GameEventDTO;
 import mecklon.scribbleIoClone.dto.MessageSubmitResponse;
 import mecklon.scribbleIoClone.dto.PlayerDTO;
@@ -24,6 +25,7 @@ public class ScheduledEventManager {
     private final RedisTemplate<String,String> redisTemplate;
     private final SecureRandom random = new SecureRandom();
     private final ObjectMapper objectMapper;
+    private final GamePropertiesService gamePropertiesService;
 
     String[] words = {
             "apple",
@@ -88,8 +90,10 @@ public class ScheduledEventManager {
             if(deadline>System.currentTimeMillis()) continue;
             GameRoomStatus status = GameRoomStatus.valueOf((String)redisTemplate.opsForHash().get(roomId+":info", "status"));
             if(status == GameRoomStatus.PLAYERS_SWITCHING_TO_GAME){
+                System.out.println("PLAYERS_SWITCHING_TO_GAME read: "+deadline);
                 redisTemplate.opsForHash().put(roomId+":info","status",GameRoomStatus.DRAWER_SELECTING_WORD.name());
-                Long newDeadLine = System.currentTimeMillis()+20_000;
+                Long newDeadLine = gamePropertiesService.getLobbySwitchDeadline();
+                System.out.println("PLAYERS_SWITCHING_TO_GAME sets: "+newDeadLine);
                 redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", String.valueOf(newDeadLine));
                 String drawerId = (String)redisTemplate.opsForHash().get(roomId+":info","drawerId");
                 String drawer = (String)redisTemplate.opsForHash().get(roomId+":info","drawer");
@@ -108,13 +112,14 @@ public class ScheduledEventManager {
                                 .build()
                 );
             }if(status == GameRoomStatus.DRAWER_SELECTING_WORD){
+                System.out.println("DRAWER_SELECTING_WORD read: "+deadline);
                 redisTemplate.opsForHash().put(roomId+":info", "status", GameRoomStatus.DRAWING.name());
                 Long timePerRound = Long.valueOf((String)redisTemplate.opsForHash().get(roomId+":info", "timePerRound" ));
                 Long newDeadLine = System.currentTimeMillis() + timePerRound * 1000;
 
                 Set<String> wordsFromRedis = redisTemplate.opsForSet().members(roomId+":currentWords");
                 ArrayList<String> output = new ArrayList<>();
-
+                System.out.println("reading room = " + roomId);
                 if(!wordsFromRedis.isEmpty()){
                     int count = 0;
                     output.addAll(wordsFromRedis);
@@ -140,7 +145,7 @@ public class ScheduledEventManager {
                 String drawer = (String)redisTemplate.opsForHash().get(roomId+":info","drawer");
                 String drawerId = (String)redisTemplate.opsForHash().get(roomId+":info","drawerId");
                 String hiddenWord = currentWord.replaceAll("[^\\s]", "_");
-
+                System.out.println("DRAWER_SELECTING_WORD sets: "+newDeadLine);
                 redisTemplate.opsForHash().put(roomId + ":info", "phaseDeadLine", String.valueOf(newDeadLine));
 
                 messagingTemplate.convertAndSend(
@@ -162,6 +167,8 @@ public class ScheduledEventManager {
                                 .build()
                 );
             }if(status == GameRoomStatus.DRAWING){
+                System.out.println("DRAWING read: "+deadline);
+
                 String drawerId = (String)redisTemplate.opsForHash().get(roomId+":info","drawerId");
                 redisTemplate.delete(roomId+":currentWords");
                 redisTemplate.opsForHash().put(roomId+":info", "currentWord", null);
@@ -225,7 +232,8 @@ public class ScheduledEventManager {
                     Integer currentRound = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","currentRound"));
                     Integer totalRounds = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","rounds"));
                     if(currentRound == totalRounds){
-                        phaseDeadLine = (Long)(System.currentTimeMillis()+60_000);
+                        phaseDeadLine = gamePropertiesService.GameDropDeadline();
+                        System.out.println("DRAWING ends game sets: "+phaseDeadLine);
                         redisTemplate.opsForHash().putAll(roomId+":info",Map.of("phaseDeadLine", phaseDeadLine+"", "status", GameRoomStatus.ENDED.name()));
                         messagingTemplate.convertAndSend(
                                 "/topic/room/" + roomId,
@@ -256,7 +264,9 @@ public class ScheduledEventManager {
                         redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                         redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
                         redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
-                        Long newPhaseDeadLine = 25_000+System.currentTimeMillis();
+                        redisTemplate.delete(roomId+":canvasEvents");
+                        Long newPhaseDeadLine = gamePropertiesService.getRoundEndDeadline();
+                        System.out.println("DRAWING ends round sets: "+newPhaseDeadLine);
                         redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", newPhaseDeadLine+"");
                         messagingTemplate.convertAndSend(
                                 "/topic/room/" + roomId,
@@ -281,8 +291,11 @@ public class ScheduledEventManager {
                     redisTemplate.opsForHash().put(roomId+":info","drawer", newDrawerDTO.getUsername());
                     redisTemplate.opsForHash().put(roomId+":info","drawerIndex", drawerIndex+"");
                     redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
-                    Long newPhaseDeadLine = 20_000+System.currentTimeMillis();
-                    redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", phaseDeadLine+"");
+                    redisTemplate.delete(roomId+":canvasEvents");
+                    System.out.println("writing room = " + roomId);
+                    Long newPhaseDeadLine = gamePropertiesService.getDrawerSelectDeadline();
+                    System.out.println("DRAWING next player sets: "+newPhaseDeadLine);
+                    redisTemplate.opsForHash().put(roomId+":info","phaseDeadLine", newPhaseDeadLine+"");
 
                     messagingTemplate.convertAndSend(
                             "/topic/room/" + roomId,
@@ -302,6 +315,7 @@ public class ScheduledEventManager {
                 }
 
             }else if(status == GameRoomStatus.ENDED){
+
                 List<String> keys = List.of(
                         roomId+":leaderboard",
                         roomId+":members",
