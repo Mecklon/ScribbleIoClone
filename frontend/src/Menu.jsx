@@ -89,7 +89,7 @@ function menu() {
       >
         logout
       </div>
-      <div className="w-125 p-2 flex relative flex-col items-center justify-center gap-2 border">
+      <div className="w-125 p-2 flex relative bg-blue-400/75 flex-col items-center justify-center gap-2 rounded-2xl">
         {
           showButtons &&
           <>
@@ -109,7 +109,7 @@ function menu() {
           ref={nameRef}
           type="text"
           onChange={handleInput}
-          className="text-center border-b-2 outline-0 text-2xl"
+          className="text-center border-b-2 outline-0 text-2xl text-white"
           defaultValue={auth.username}
         />
       </div>

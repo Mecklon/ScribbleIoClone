@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import usePostFetch from "./hooks/usePostFetch";
 import useGetFetch from "./hooks/useGetFetch";
 import Image from "./hooks/Image";
+import { IoAlarmOutline } from "react-icons/io5";
 import avatar from './assets/defaultAvatar.webp'
 import { RiWifiOffLine } from "react-icons/ri";
 import { useSelector } from "react-redux";
@@ -189,10 +190,21 @@ function Room() {
                                 type:"POINTS",
                                 playerPoints:event.data.points
                             })
+                            setRoomState((prev)=>{
+                                let map = new Map();
+                                event.data.points.forEach(player=> map.set(player.id, player.points))
+                                return {...prev, players: prev.players.map(info=>{
+                                    return {
+                                        ...info,
+                                        points: info.points+ map.get(info.player.id)
+                                    }
+                                })}
+                            })
                         }
                         newEvents.push({
                             type:"DRAWER_INTRO",
                         })
+                        
                         setEvents(newEvents)
                         setEventIndex(0)
                     }else if(event.type === "PLAYER_DRAWING"){
@@ -210,6 +222,10 @@ function Room() {
                             }
                         })
                     }else if(event.type === "ROUND_END"){
+
+                        let map = new Map();
+                        event.data.points.forEach(player=> map.set(player.id, player.points))
+
                         setRoomState(prev=>{
                             return {...prev, 
                                 status: "DRAWER_SELECTING_WORD",
@@ -217,9 +233,16 @@ function Room() {
                                 drawer: event.data.drawer,
                                 drawerId: event.data.drawerId,
                                 currentHiddenWord:null,
-                                currentRound:event.data.newRoundIndex
+                                currentRound:event.data.newRoundIndex,
+                                players: prev.players.map(info=>{
+                                    return {
+                                        ...info,
+                                        points: info.points+ map.get(info.player.id)
+                                    }
+                                })
                             }
                         })
+
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
                         ctx.beginPath()
@@ -285,7 +308,7 @@ function Room() {
                 bufferEvents.current = true;
                 let data = await fetch("joinGame/"+roomId)
                 bufferEvents.current = false;
-                data.chats.reverse();
+                data.chats
                 let newEvents = []
                 for(let i =0;i<eventBuffer.current.length;i++){
                     let event = eventBuffer.current[i];
@@ -665,22 +688,31 @@ function Room() {
    
   return (
     <div className="py-7 px-5 flex flex-col gap-3 h-screen">
-      <div className="flex bg-red-600 gap-1 items-center">
-        <PiScribbleDuotone className="text-6xl" />
+      <div className="flex gap-1 items-center text-white">
+        <PiScribbleDuotone className="text-6xl " />
         <div className="text-4xl font-bold">Scribblr</div>
       </div>
-      <div className="flex bg-red-600 font-bold text-4xl p-5 gap-1 items-center">
-        { roomState.status === "PLAYERS_SWITCHING_TO_GAME" &&`Waiting for players to join..... ${timer!=null ? timer:""}` }
-        { roomState.status === "DRAWER_SELECTING_WORD" &&`${roomState.drawer}  is selecting a word..... ${timer!=null ? timer:""}` }
-        { roomState.status === "PLAYER_DRAWING" && auth.id !== roomState.drawerId &&`Round:(${roomState.currentRound}/${roomState.rounds})${roomState.drawer} is drawing..... ${timer!=null ? "("+timer+"/"+roomState.timePerRound+")":""}   ${roomState.currentHiddenWord}` }
-        { roomState.status === "PLAYER_DRAWING" && auth.id === roomState.drawerId &&`Round:(${roomState.currentRound}/${roomState.rounds}) You are drawing..... ${timer!=null ? "("+timer+"/"+roomState.timePerRound+")":""}   ${roomState.currentWord}` }
-      </div>
-      <div className="grow w-full flex gap-3 bg-red-600 min-h-0">
-        <div className="w-75 bg-red-700 gap-3 shrink-0 flex flex-col h-full min-h-0">
-            <div className="grow w-full overflow-auto noScrollBar">
+        {
+            (roomState.status === "DRAWER_SELECTING_WORD" || roomState.status === "PLAYER_DRAWING" || true) &&  (<>
+                <div className="flex h-15 bg-white justify-between font-bold text-4xl p-5 gap-1 items-center">
+                    <div className="flex gap-2 items-center"> 
+                        <div className="flex items-center relative justify-center">
+                        <IoAlarmOutline className="text-7xl scale-110"/>
+                        <div className="bg-white h-9 w-9 absolute rounded-full text-2xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">{timer}</div>  
+                        </div>
+                        <div>Round {roomState.currentRound} of {roomState.rounds} </div>
+                    </div>
+                    {roomState.currentHiddenWord !==null && <div className="tracking-widest">{roomState.drawerId === auth.id ? roomState.currentWord: roomState.currentHiddenWord}</div>}
+                </div>
+            </>
+            )
+        }
+      <div className="grow w-full flex gap-3  min-h-0">
+        <div className="w-75  gap-3 shrink-0 flex flex-col h-full min-h-0">
+            <div className="grow w-full overflow-auto noScrollBar rounded-lg">
                 {
-                    roomState.players.map(data=>{
-                        return <div key={data.player.id} className="flex p-1 relative">
+                    roomState.players.map((data, index)=>{
+                        return <div key={data.player.id} className={`flex p-1 relative ${index/2===0 ? "bg-stone-400":"bg-white"}`}>
                                     {!data.connected &&
                                         <RiWifiOffLine className="top-1 left-1 absolute text-2xl"/>
                                     }
@@ -688,17 +720,17 @@ function Room() {
                                         <div className="font-semibold text-xl">{data.player.username}</div>
                                         <div className="text-xl">Points: {data.points}</div>
                                     </div>
-                                    <Image path={data.player.profile} fallback={avatar} className="aspect-square rounded-full shrink-0 bg-red-950 w-16"></Image>
+                                    <Image path={data.player.profile} fallback={avatar} className="aspect-square rounded-full shrink-0 w-16"></Image>
                                 </div>
                     })
                 }
             </div>
             <div className="text-center bg-amber-600 font-bold text-2xl p-2 rounded-md">Kick player</div>
         </div>
-        <div className="grow relative bg-red-700">
+        <div className="grow relative">
                 {
                     eventIndex!=null && events.length!=0 &&
-                    <div className="bg-black/50 h-full text-white p-3">
+                    <div className="bg-black/50 absolute top-0 left-0 right-0 h-full text-white p-3">
                         {
                             events[eventIndex].type === "POINTS" && 
                             <div className="flex flex-col h-full text-4xl justify-center items-center">
@@ -727,7 +759,7 @@ function Room() {
                                 <div className="flex flex-wrap gap-4">
                                     {                                    
                                     words.map(word=>{
-                                        return <div onClick={()=>chooseWord(word)} className="bg-black/24 p-2 px-4 rounded-md cursor-pointer duration-300 hover:bg-black/50 hover:scale-110">{word}</div>
+                                        return <div key={word} onClick={()=>chooseWord(word)} className="bg-black/24 p-2 px-4 rounded-md cursor-pointer duration-300 hover:bg-black/50 hover:scale-110">{word}</div>
                                     })}
 
                                 </div>
@@ -746,72 +778,74 @@ function Room() {
                         height="600" width="1000" 
                         className={`w-full bg-white ${(auth.id !== null && roomState.drawerId === auth.id) ?  "pointer-events-auto" : "pointer-events-none"}`}>
                 </canvas>
-                <div className={`bg-white  mt-2 gap-2 flex justify-center ${auth.id !== null && roomState.drawerId === auth.id ?  "pointer-events-auto" : "pointer-events-none"}`}>
-                    <div className="h-14 w-14 aspect-square bg-blue-600">
-                            
-                    </div>
-                    <div>
-                        <div className="flex">
-                            {colors.slice(0, 10).map((c) => (
-                                <div
-                                    key={c}
-                                    className="h-7 w-7 border border-gray-300 cursor-pointer"
-                                    style={{ backgroundColor: c }}
-                                    onClick={() => {
-                                        color.current = c;
-                                    }}
-                                />
-                            ))}
+                {roomState.drawerId === auth.id &&
+                    <div className={`mt-2 gap-2 flex justify-center`}>
+                        <div className="h-14 w-14 aspect-square rounded-md bg-blue-600">
+                                
                         </div>
+                        <div>
+                            <div className="flex">
+                                {colors.slice(0, 10).map((c) => (
+                                    <div
+                                        key={c}
+                                        className="h-7 w-7  cursor-pointer"
+                                        style={{ backgroundColor: c }}
+                                        onClick={() => {
+                                            color.current = c;
+                                        }}
+                                    />
+                                ))}
+                            </div>
 
-                        <div className="flex">
-                            {colors.slice(10).map((c) => (
-                                <div
-                                    key={c}
-                                    className="h-7 w-7 border border-gray-300 cursor-pointer"
-                                    style={{ backgroundColor: c }}
-                                    onClick={() => {
-                                        color.current = c;
-                                    }}
-                                />
-                            ))}
+                            <div className="flex">
+                                {colors.slice(10).map((c) => (
+                                    <div
+                                        key={c}
+                                        className="h-7 w-7 cursor-pointer"
+                                        style={{ backgroundColor: c }}
+                                        onClick={() => {
+                                            color.current = c;
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div onClick={()=>{mode.current = "STROKE"}} className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <FaPencilAlt className="text-4xl"/>
+                        </div>
+                        <div onClick={()=>{mode.current = "FILL"}}  className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <IoMdColorFill className="text-4xl"/>
+                        </div>
+                        <div onClick={()=>{cursorSize.current = 4}} className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <div className="h-4 w-4 bg-black rounded-full"></div>
+                        </div>
+                        <div onClick={()=>{cursorSize.current = 8}} className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <div className="h-6 w-6 bg-black rounded-full"></div>
+                        </div>
+                        <div onClick={()=>{cursorSize.current = 18}} className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <div className="h-8 w-8 bg-black rounded-full"></div>
+                        </div>
+                        <div onClick={()=>{
+                                const ctx = canvasRef.current.getContext("2d");
+                                ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
+                                ctx.beginPath()
+                        }} className="h-14 w-14 aspect-square bg-white rounded-md flex justify-center items-center">
+                            <RiDeleteBin6Line  className="text-4xl"/>
                         </div>
                     </div>
-                    <div onClick={()=>{mode.current = "STROKE"}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <FaPencilAlt className="text-4xl"/>
-                    </div>
-                    <div onClick={()=>{mode.current = "FILL"}}  className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <IoMdColorFill className="text-4xl"/>
-                    </div>
-                    <div onClick={()=>{cursorSize.current = 4}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <div className="h-4 w-4 bg-black rounded-full"></div>
-                    </div>
-                    <div onClick={()=>{cursorSize.current = 8}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <div className="h-6 w-6 bg-black rounded-full"></div>
-                    </div>
-                    <div onClick={()=>{cursorSize.current = 18}} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <div className="h-8 w-8 bg-black rounded-full"></div>
-                    </div>
-                    <div onClick={()=>{
-                            const ctx = canvasRef.current.getContext("2d");
-                            ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
-                            ctx.beginPath()
-                    }} className="h-14 w-14 aspect-square bg-blue-600 flex justify-center items-center">
-                        <RiDeleteBin6Line  className="text-4xl"/>
-                    </div>
-                </div>
+                }
         </div>
-        <div className="w-100 bg-red-700 gap-2 p-2 flex shrink-0 flex-col h-full">
-            <div className="bg-red-800 grow min-h-0 overflow-auto noScrollBar flex flex-col-reverse text-xl p-1">
+        <div className="w-100 bg-white gap-2 p-2 flex shrink-0 flex-col h-full">
+            <div className=" grow min-h-0 overflow-auto noScrollBar flex flex-col-reverse text-xl p-1">
                 {
-                    messages.map(item => {
+                    messages.map((item,index) => {
                     return item.correct === true ? (
-                        <div key={item.id} className="flex gap-1 px-2 text-green-500">
+                        <div key={item.id} className={`flex gap-1 px-2 text-green-500 ${(index%2===0 && messages.length%2 === 0) || (index%2===1 && messages.length%2 === 1)? "bg-stone-300":"bg-white"}`}>
                             <div className="font-semibold">{item.username} : </div>
                             <div>guessed the word</div>
                         </div>
                     ) : (
-                        <div key={item.id} className="flex gap-1 px-2">
+                        <div key={item.id} className={`flex gap-1 px-2 ${(index%2===0 && messages.length%2 === 0) || (index%2===1 && messages.length%2 === 1)? "bg-stone-300":"bg-white"}`}>
                             <div className="font-semibold">{item.username} : </div>
                             <div>{item.message}</div>
                         </div>
@@ -819,7 +853,7 @@ function Room() {
                 })
                 }
             </div>
-            <input onKeyDown={chatInput} type="text" className="bg-white p-2 outline-0 ring-0 duration-300 focus:ring-3 ring-blue-600 rounded-md px-4 text-xl " placeholder="text here, one word entries will be considered guesses" />
+            <input onKeyDown={chatInput} type="text" className="bg-white p-2 outline-0 ring-1 duration-300 focus:ring-3 ring-blue-600 rounded-md px-4 text-xl " placeholder="text here, one word entries will be considered guesses" />
         </div>
       </div>
     </div>

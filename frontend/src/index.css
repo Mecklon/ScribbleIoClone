@@ -3,6 +3,7 @@
 
 body{
   margin: 0px;
+  background-image: url("/src/assets/back1.jpg");
 }
 
 .noScrollBar::-webkit-scrollbar{
@@ -11,3 +12,4 @@ body{
 .messages > div:nth-child(2n){
   background-color: rgba(0, 0, 0, 0.281);
 }
+

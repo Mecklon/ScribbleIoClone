@@ -28,9 +28,9 @@ function Leaderboard() {
     }
 
   return (
-    <div className='bg-red-600 flex items-center justify-center'>
+    <div className=' flex items-center justify-center'>
       
-      <table className='text-4xl border-separate border-spacing-x-6 border-spacing-y-4 rounded-lg bg-amber-300'>
+      <table className='text-4xl border-separate border-spacing-x-6 border-spacing-y-4 rounded-lg bg-blue-500/75 text-white mt-20'>
         <tbody>
         {
           leaderboard.map(player =>{

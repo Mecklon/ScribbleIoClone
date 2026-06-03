@@ -140,10 +140,10 @@ function RoomLobby() {
 
     
   return (
-    <div className="p-5 flex flex-col gap-5 h-screen bg-red-500">
+    <div className="p-5 flex flex-col gap-5 h-screen">
         {
             auth.id !== host &&
-            <div className="text-4xl font-bold">
+            <div className="text-4xl font-bold text-white">
                 Rounds: {rounds}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time Per Round: {timePerRound}
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 Host: {hostUsername}
@@ -151,9 +151,9 @@ function RoomLobby() {
         }
       <div className="flex gap-5 h-[80%] w-full">
         {
-            auth.id === host && <div className="w-160 shrink-0 bg-red-800">
+            auth.id === host && <div className="w-160 shrink-0">
             <div className="text-white text-5xl font-semibold text-center mb-4">Settings</div>
-            <div className="bg-white p-2">
+            <div className="bg-white p-2 rounded-lg">
                 <div className="text-center text-3xl border-b pb-2">Lobby</div>
                 <div className="text-2xl font-semibold py-1">Rounds</div>
                 <select ref={roundInputRef} onChange={handleSettingsChange} defaultValue={3} name="" className="border w-full p-2 px-3 text-2xl border-stone-700" id="">
@@ -202,14 +202,14 @@ function RoomLobby() {
             </div>
         </div>
         }
-        <div className="grow flex flex-col  bg-red-800">
+        <div className="grow flex flex-col ">
             <div className="text-white text-5xl font-semibold text-center mb-4">Players</div>
-            <div className="bg-white grow w-full overflow-auto flex  gap-3 flex-wrap p-3 items-baseline">
+            <div className="grow w-full overflow-auto flex  gap-3 flex-wrap p-3 items-baseline">
                 {
                     players.map(item=>{
-                        return <div key={item.email} className="flex flex-col p-2 w-60 items-center justify-center bg-red-500 ">
-                                    <Image className="w-[80%] bg-black rounded-full aspect-square" path={item.profile}></Image>
-                                    <div className="text-2xl text-center">{item.username}</div>
+                        return <div key={item.email} className="flex flex-col p-2 w-60 items-center justify-center  ">
+                                    <Image className="w-[80%] bg-blac  rounded-full aspect-square" path={item.profile}></Image>
+                                    <div className="text-2xl text-white font-semibold text-center">{item.username}</div>
                                 </div>
                     })
                 }
@@ -217,7 +217,7 @@ function RoomLobby() {
             </div>
         </div>
       </div>
-        <div className="w-full bg-red-800 grow">
+        <div className="w-full  grow">
             <div className="text-white text-center text-5xl font-semibold">Invite your friends!</div>
             <div onMouseLeave={handleMouseLeave} onMouseOver={handleMouseOver} className="flex mt-6">
                 <div ref={linkRef} className="grow bg-white text-center p-2 px-3 text-stone-800 text-3xl
