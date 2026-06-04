@@ -78,7 +78,7 @@ function menu() {
 
   const createRoom = async()=>{
     const roomId = await createRoomFetch("/createRoom")
-    navigate("/roomLobby/"+roomId);
+    navigate("/roomLobby/"+roomId,{replace:true});
   }
 
   return (

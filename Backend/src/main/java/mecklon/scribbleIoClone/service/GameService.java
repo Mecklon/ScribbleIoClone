@@ -379,7 +379,7 @@ public class GameService {
             );
             Boolean isConnected = connectedPlayers.contains(playerId);
             Integer points = pointsMap.getOrDefault(playerId, 0);
-            players.add(new GamePlayerDTO(dto, points, isConnected));
+            players.add(new GamePlayerDTO(dto, points, isConnected,1));
         }
         Map<Object, Object> roomInfo = redisTemplate.opsForHash().entries(roomId+":info");
         String host = (String)roomInfo.get("host");

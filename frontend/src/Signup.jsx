@@ -72,7 +72,7 @@ function Signup() {
 
    return (
     <div className="flex items-center justify-center h-screen">
-      <div className="aspect-7/8 border border-gray-500  rounded-md shadow-2xl p-5">
+      <div className="aspect-7/8 border bg-blue-500/50 border-gray-500  rounded-md shadow-2xl p-5">
         <div className="flex gap-1 items-center">
           <PiScribbleDuotone className="text-5xl" />
           <div className="text-3xl font-bold">Scribblr</div>

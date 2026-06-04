@@ -10,4 +10,5 @@ public class GamePlayerDTO {
     private PlayerDTO player;
     private Integer points;
     private Boolean connected;
+    private Integer rank;
 }

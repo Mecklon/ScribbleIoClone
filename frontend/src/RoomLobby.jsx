@@ -39,7 +39,7 @@ function RoomLobby() {
     useEffect(() => {
         if (!wsConnected) return;
         if (!roomId) {
-            navigate("/");
+            navigate("/",{replace:true});
             return;
         }
 
@@ -62,7 +62,7 @@ function RoomLobby() {
                         setTimePerRound(event.data.timePerRound)
                     }
                 }else if(event.type === "PLAYERS_SWITCHING_TO_GAME" && host!==auth.id){
-                    navigate("/room/"+roomId);
+                    navigate("/room/"+roomId,{replace:true});
                 }
             }
         );
@@ -133,7 +133,7 @@ function RoomLobby() {
             customWords: customWordsInputRef.current.value.toUpperCase().trim(),
             onlyCustomWords: checkBoxRef.current.checked
         })
-        navigate("/room/"+roomId);
+        navigate("/room/"+roomId,{replace:true});
     }
 
 

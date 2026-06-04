@@ -123,7 +123,7 @@ function Room() {
     useEffect(() => {
             if (!wsConnected) return;
             if (!roomId) {
-                navigate("/");
+                navigate("/",{replace:true});
                 return;
             }
             const sub = client.subscribe(
@@ -191,12 +191,24 @@ function Room() {
                                 playerPoints:event.data.points
                             })
                             setRoomState((prev)=>{
+                                event.data.points.sort((a, b) => b.points - a.points)
+                                let rankMap = new Map();
+                                let rank = 0, curr = -1;
+                                for(let i = 0;i<event.data.points.length;i++){
+                                    const player = event.data.points[i];
+                                    if(curr!=player.points){
+                                        curr = player.points;
+                                        rank++;
+                                    }
+                                    rankMap.set(player.id, rank)
+                                }
                                 let map = new Map();
                                 event.data.points.forEach(player=> map.set(player.id, player.points))
                                 return {...prev, players: prev.players.map(info=>{
                                     return {
                                         ...info,
-                                        points: info.points+ map.get(info.player.id)
+                                        points: info.points+ map.get(info.player.id),
+                                        rank: rankMap.get(info.player.id)
                                     }
                                 })}
                             })
@@ -223,24 +235,27 @@ function Room() {
                         })
                     }else if(event.type === "ROUND_END"){
 
-                        let map = new Map();
-                        event.data.points.forEach(player=> map.set(player.id, player.points))
-
-                        setRoomState(prev=>{
-                            return {...prev, 
-                                status: "DRAWER_SELECTING_WORD",
-                                phaseDeadLine: event.data.phaseDeadLine,
-                                drawer: event.data.drawer,
-                                drawerId: event.data.drawerId,
-                                currentHiddenWord:null,
-                                currentRound:event.data.newRoundIndex,
-                                players: prev.players.map(info=>{
-                                    return {
-                                        ...info,
-                                        points: info.points+ map.get(info.player.id)
-                                    }
-                                })
+                        setRoomState((prev)=>{
+                            event.data.points.sort((a, b) => b.points - a.points)
+                            let rankMap = new Map();
+                            let rank = 0, curr = -1;
+                            for(let i = 0;i<event.data.points.length;i++){
+                                const player = event.data.points[i];
+                                if(curr!=player.points){
+                                    curr = player.points;
+                                    rank++;
+                                }
+                                rankMap.set(player.id, rank)
                             }
+                            let map = new Map();
+                            event.data.points.forEach(player=> map.set(player.id, player.points))
+                            return {...prev, players: prev.players.map(info=>{
+                                return {
+                                    ...info,
+                                    points: info.points+ map.get(info.player.id),
+                                    rank: rankMap.get(info.player.id)
+                                }
+                            })}
                         })
 
                         const ctx = canvasRef.current.getContext("2d");
@@ -248,12 +263,12 @@ function Room() {
                         ctx.beginPath()
                         let newEvents = [];
                         newEvents.push({
-                            type:"NEW_ROUND"
+                            type:"POINTS",
+                            playerPoints:event.data.points
                         })
                         newEvents.push({
-                                type:"POINTS",
-                                playerPoints:event.data.points
-                            })
+                            type:"NEW_ROUND"
+                        })
                         newEvents.push({
                             type:"DRAWER_INTRO",
                         })
@@ -300,7 +315,7 @@ function Room() {
                         }
                         ctx.stroke()
                     }else if(event.type === "GAME_END"){
-                        navigate("/leaderboard/"+roomId)
+                        navigate("/leaderboard/"+roomId,{replace:true})
                     }
                 }
             );
@@ -357,6 +372,29 @@ function Room() {
                                 type:"POINTS",
                                 playerPoints:event.data.points
                             })
+
+                            event.data.points.sort((a, b) => b.points - a.points)
+                            let rankMap = new Map();
+                            let rank = 0, curr = -1;
+                            for(let i = 0;i<event.data.points.length;i++){
+                                const player = event.data.points[i];
+                                if(curr!=player.points){
+                                    curr = player.points;
+                                    rank++;
+                                }
+                                rankMap.set(player.id, rank)
+                            }
+
+                            let map = new Map();
+                            event.data.points.forEach(player=> map.set(player.id, player.points))
+
+                            data = {...data, players: data.players.map(info=>{
+                                return {
+                                    ...info,
+                                    points: info.points+ map.get(info.player.id),
+                                    rank: rankMap.get(info.player.id)
+                                }
+                            })}
                         }
                         newEvents.push({
                             type:"DRAWER_INTRO",
@@ -374,25 +412,49 @@ function Room() {
                             phaseDeadLine: event.data.phaseDeadLine,
                         }
                     }else if(event.type === "ROUND_END"){
+
+                        event.data.points.sort((a, b) => b.points - a.points)
+                        let rankMap = new Map();
+                        let rank = 0, curr = -1;
+                        for(let i = 0;i<event.data.points.length;i++){
+                            const player = event.data.points[i];
+                            if(curr!=player.points){
+                                curr = player.points;
+                                rank++;
+                            }
+                            rankMap.set(player.id, rank)
+                        }
+
+                        let map = new Map();
+                        event.data.points.forEach(player=> map.set(player.id, player.points))
+
                         data = {...data, 
                                 status: "DRAWER_SELECTING_WORD",
                                 phaseDeadLine: event.data.phaseDeadLine,
                                 drawer: event.data.drawer,
                                 drawerId: event.data.drawerId,
                                 currentHiddenWord:null,
-                                currentRound:event.data.newRoundIndex
+                                currentRound:event.data.newRoundIndex,
+                                players: data.players.map(info=>{
+                                    return {
+                                        ...info,
+                                        points: info.points+ map.get(info.player.id),
+                                        rank: rankMap.get(info.player.id)
+                                    }
+                                })
                             }
+                        
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
                         ctx.beginPath()
                         newEvents = [];
                         newEvents.push({
-                            type:"NEW_ROUND"
+                            type:"POINTS",
+                            playerPoints:event.data.points
                         })
                         newEvents.push({
-                                type:"POINTS",
-                                playerPoints:event.data.points
-                            })
+                            type:"NEW_ROUND"
+                        })
                         newEvents.push({
                             type:"DRAWER_INTRO",
                         })
@@ -405,7 +467,7 @@ function Room() {
                 }
 
                 if(data.status === "ENDED"){
-                    navigate("/leaderboard/"+roomId)
+                    navigate("/leaderboard/"+roomId,{replace:true})
                 }
 
                 if(data.canvasEvents.length!=0){
@@ -716,6 +778,9 @@ function Room() {
                                     {!data.connected &&
                                         <RiWifiOffLine className="top-1 left-1 absolute text-2xl"/>
                                     }
+                                    <div className="shrink-0 text-3xl font-semibold flex items-center justify-center  ml-2">
+                                    #{data.rank}
+                                    </div>
                                     <div className="grow text-center flex flex-col justify-center">
                                         <div className="font-semibold text-xl">{data.player.username}</div>
                                         <div className="text-xl">Points: {data.points}</div>
@@ -738,7 +803,7 @@ function Room() {
                                     events[eventIndex].playerPoints.map((player)=>{
                                         return <div key={player.id} className="flex gap-3">
                                             <div>{player.username}</div>
-                                            <div>{player.points}</div>
+                                            <div className={`${player.points !== 0 ? "text-green-600":""}`}>{player.points!==0 ? "+":""}{player.points}</div>
                                         </div>
                                     })
                                 }
@@ -767,7 +832,7 @@ function Room() {
                         }
                         {
                             events[eventIndex].type === "NEW_ROUND" &&
-                            <div className="text-center text-4xl font-semibold">
+                            <div className="text-center text-7xl h-full font-semibold flex items-center justify-center ">
                                 Round: {roomState.currentRound}
                             </div>
                         }
