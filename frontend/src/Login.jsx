@@ -86,7 +86,7 @@ function Login() {
             }
           <div className="text-center mt-4">
             Dont have an account? 
-          <Link className="text-blue-600 ml-1 underline " to="/signup">Signup</Link>
+          <Link className="text-blue-950 ml-1 underline " to="/signup">Signup</Link>
           </div>
       </div>
     </div>

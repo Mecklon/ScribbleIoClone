@@ -298,6 +298,7 @@ public class GameService {
         if(!Objects.equals(added, 0L)){
             Long totalSize = redisTemplate.opsForSet().size(roomId + ":members");
             Long currentSize = redisTemplate.opsForSet().size(roomId+":playersInGame");
+            Long exitedSize = redisTemplate.opsForSet().size(roomId+":exitedMembers");
 
             messagingTemplate.convertAndSend(
                     "/topic/room/" + roomId,
@@ -314,7 +315,7 @@ public class GameService {
                             .build()
             );
             GameRoomStatus gameStatus = GameRoomStatus.valueOf((String)redisTemplate.opsForHash().get(roomId + ":info", "status"));
-            if(gameStatus == GameRoomStatus.PLAYERS_SWITCHING_TO_GAME && Objects.equals(totalSize, currentSize)){
+            if(gameStatus == GameRoomStatus.PLAYERS_SWITCHING_TO_GAME && Objects.equals(totalSize-exitedSize, currentSize)){
                 redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
                 redisTemplate.delete(roomId+":canvasEvents");
                 Long newDeadLine = gamePropertiesService.getDrawerSelectDeadline();
@@ -860,6 +861,23 @@ public class GameService {
 
         redisTemplate.opsForHash().put(roomId+":info", "calculatedLeaderboard", objectMapper.writeValueAsString(leaderBoard));
         return leaderBoard;
+    }
+
+    public void removeFromLobby(Authentication auth) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        String roomId = redisTemplate.opsForValue().get(userDetails.getId()+":room");
+        if(roomId==null)return;
+        GameRoomStatus status = GameRoomStatus.valueOf((String) redisTemplate.opsForHash().get(roomId+":info","status"));
+        if(status != GameRoomStatus.LOBBY) return;
+        redisTemplate.opsForSet().add(roomId+":exitedMembers", userDetails.getId());
+        messagingTemplate.convertAndSend(
+                "/topic/room/" + roomId,
+                GameEventDTO.builder()
+                        .initiator(new PlayerDTO(userDetails.getId(),userDetails.getDisplayUsername(), userDetails.getUsername(),null))
+                        .type(GameEventType.PLAYER_EXIT)
+                        .build()
+        );
+        System.out.println("we alright");
     }
 }
 

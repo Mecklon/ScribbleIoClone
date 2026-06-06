@@ -106,4 +106,11 @@ public class MainController {
         return ResponseEntity.status(HttpStatus.OK).body(gameService.getLeaderboard(roomId));
     }
 
+
+    @GetMapping("/exitLobby")
+    public ResponseEntity<Void> getLeaderboard(Authentication auth){
+        gameService.removeFromLobby(auth);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
 }

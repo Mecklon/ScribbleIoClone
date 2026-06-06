@@ -16,6 +16,7 @@ import { FaPencilAlt } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { LuPaintBucket } from "react-icons/lu";
 import { IoMdColorFill } from "react-icons/io";
+import { BiDoorOpen } from "react-icons/bi";
 
 const colors = [
     "#808080",
@@ -119,6 +120,9 @@ function Room() {
     const eventBuffer = useRef([]);
     const navigate = useNavigate();
 
+
+    const [showComfirmationBox, setShowConfirmationBox] = useState(false);
+ 
 
     useEffect(() => {
             if (!wsConnected) return;
@@ -249,7 +253,14 @@ function Room() {
                             }
                             let map = new Map();
                             event.data.points.forEach(player=> map.set(player.id, player.points))
-                            return {...prev, players: prev.players.map(info=>{
+                            return {...prev, 
+                                status: "DRAWER_SELECTING_WORD",
+                                phaseDeadLine: event.data.phaseDeadLine,
+                                drawer: event.data.drawer,
+                                drawerId: event.data.drawerId,
+                                currentHiddenWord:null,
+                                currentRound:event.data.newRoundIndex,
+                                players: prev.players.map(info=>{
                                 return {
                                     ...info,
                                     points: info.points+ map.get(info.player.id),
@@ -750,6 +761,21 @@ function Room() {
    
   return (
     <div className="py-7 px-5 flex flex-col gap-3 h-screen">
+        <BiDoorOpen onClick={()=>setShowConfirmationBox(true)} className="text-white text-5xl duration-300 hover:scale-110 fixed top-6 right-6"/>
+        {
+            showComfirmationBox &&
+            <div onClick={()=>{setShowConfirmationBox(false)}} className="fixed inset-0 z-10 backdrop-blur-sm flex items-center justify-center">
+                <div onClick={e=>e.stopPropagation()} className="bg-white p-7 shadow-2xl border border-gray-500 rounded-3xl text-3xl font-semibold">
+                    Are you sure you want to exit this room
+                    <div className="flex justify-around mt-15 text-white">
+                        <button onClick={(e)=>{
+                   
+                        }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {/* {exiting ? <img src={rolling} className="h-12"></img>:""} */}</button>
+                        <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
+                    </div>
+                </div>
+            </div>
+        }
       <div className="flex gap-1 items-center text-white">
         <PiScribbleDuotone className="text-6xl " />
         <div className="text-4xl font-bold">Scribblr</div>

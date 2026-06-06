@@ -82,19 +82,19 @@ function Signup() {
                     <div className="text-red-700 text-xs absolute top-24 left-1">{emailError.message}</div>
                 }
             </div>
-          <input ref={emailRef} type="text" className={`w-full  mt-3 text-2xl p-1 outline-0 rounded-sm ${(emailError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input ref={emailRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(emailError)? "border-red-700":"border-blue-600"} border-4`}/>
             <div className="text-3xl font-semibold mt-7 relative">Username
                 {usernameError &&
                     <div className="text-red-700 text-xs absolute top-24 left-1">{usernameError.message}</div>
                 }
             </div>
-          <input ref={usernameRef} type="text" className={`w-full  mt-3 text-2xl p-1 outline-0 rounded-sm ${(usernameError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input ref={usernameRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(usernameError)? "border-red-700":"border-blue-600"} border-4`}/>
             <div className="text-3xl font-semibold mt-7 relative">Password
                 {passwordError &&
                     <div className="text-red-700 text-xs absolute top-24 left-1">{passwordError.message}</div>
                 }
             </div>
-          <input ref={passwordRef} type="text" className={`w-full  mt-3 text-2xl p-1 outline-0 rounded-sm ${(passwordError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input ref={passwordRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(passwordError)? "border-red-700":"border-blue-600"} border-4`}/>
           <button onClick={handleSignup} className="bg-blue-900 relative text-white text-center font-semibold w-full mt-10 p-2 text-3xl rounded-sm">Signup
             {
                 loading && <img className="absolute h-10 top-2 left-[63%]" src={rolling} alt="" />
@@ -108,7 +108,7 @@ function Signup() {
             }
           <div className="text-center mt-4">
             Already have an account? 
-          <Link className="text-blue-600 underline ml-1" to="/loging">Login</Link>
+          <Link className="text-blue-950 underline ml-1" to="/loging">Login</Link>
           </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ import Image from "./hooks/Image";
 import { useSelector } from "react-redux";
 import rolling from './assets/rolling.gif';
 import usePostFetch from "./hooks/usePostFetch";
+import { BiDoorOpen } from "react-icons/bi";
+
 function RoomLobby() {
 
 
@@ -15,6 +17,7 @@ function RoomLobby() {
 
     const {loading, error, fetch} = useGetFetch();
     const {loading: startingGame, error: gameStartError, fetch:startGameFetch} = usePostFetch();
+    const {fetch: exitFetch, loading:exiting} = useGetFetch();
     
     const navigate = useNavigate();
 
@@ -35,6 +38,9 @@ function RoomLobby() {
     const checkBoxRef = useRef();
 
     const [customWordsError,setCustomWordError] = useState(null);
+
+    const [showComfirmationBox, setShowConfirmationBox] = useState(false);
+
 
     useEffect(() => {
         if (!wsConnected) return;
@@ -63,6 +69,8 @@ function RoomLobby() {
                     }
                 }else if(event.type === "PLAYERS_SWITCHING_TO_GAME" && host!==auth.id){
                     navigate("/room/"+roomId,{replace:true});
+                }else if(event.type === "PLAYER_EXIT"){
+                    setPlayers(prev=>{return prev.filter(item=> item.id!==event.initiator.id)})
                 }
             }
         );
@@ -137,10 +145,29 @@ function RoomLobby() {
     }
 
 
-
+    const exitLobby = async () => {
+        //edge case: another race condition the game is switched from lobby to game, grace time is given to players to join the game , which now if exactly at the same time the player exits but his frontend also got the join game message and also hit the join game route , now the player is in race with himself
+        await exitFetch("/exitLobby");
+        navigate("/", { replace: true });
+    };
     
   return (
     <div className="p-5 flex flex-col gap-5 h-screen">
+        {
+            showComfirmationBox &&
+            <div onClick={()=>{setShowConfirmationBox(false)}} className="fixed inset-0 backdrop-blur-sm flex items-center justify-center">
+                <div onClick={e=>e.stopPropagation()} className="bg-white p-7 shadow border border-gray-600 shadow-2xl rounded-3xl text-3xl font-semibold">
+                    Are you sure you want to exit this room
+                    <div className="flex justify-around mt-15 text-white">
+                        <button onClick={(e)=>{
+                            exitLobby()
+                        }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {exiting ? <img src={rolling} className="h-12"></img>:""}</button>
+                        <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
+                    </div>
+                </div>
+            </div>
+        }
+        <BiDoorOpen onClick={()=>setShowConfirmationBox(true)} className="fixed right-6 top-6 text-5xl duration-300 hover:scale-110 text-white"/>
         {
             auth.id !== host &&
             <div className="text-4xl font-bold text-white">
