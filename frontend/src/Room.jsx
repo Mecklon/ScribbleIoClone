@@ -14,6 +14,7 @@ import { button, div } from "motion/react-client";
 import { RxDividerVertical } from "react-icons/rx";
 import { FaPencilAlt } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
+import rolling from './assets/rolling.gif';
 import { LuPaintBucket } from "react-icons/lu";
 import { IoMdColorFill } from "react-icons/io";
 import { BiDoorOpen } from "react-icons/bi";
@@ -112,6 +113,7 @@ function Room() {
     const {error:wordsLoadingError, loading:wordsLoading , fetch:fetchWords} = useGetFetch();
     const {error:wordLoadingError, loading:wordLoading , fetch:fetchWord} = useGetFetch();
     const {error:chooseWordError, loading:chooseWordLoading, fetch: fetchChooseWord} = usePostFetch();
+    const {fetch: exitGameFetch, loading: exiting} = useGetFetch();
     const {error:chatSendError, loading:sendingChat, fetch: fetchSendWord} = usePostFetch();
     const [events, setEvents] = useState([])
     const [eventIndex, setEventIndex] = useState(null)
@@ -122,6 +124,8 @@ function Room() {
 
 
     const [showComfirmationBox, setShowConfirmationBox] = useState(false);
+
+    const moveToLeaderBoard = useRef(false);
  
 
     useEffect(() => {
@@ -239,35 +243,48 @@ function Room() {
                         })
                     }else if(event.type === "ROUND_END"){
 
-                        setRoomState((prev)=>{
-                            event.data.points.sort((a, b) => b.points - a.points)
-                            let rankMap = new Map();
-                            let rank = 0, curr = -1;
-                            for(let i = 0;i<event.data.points.length;i++){
-                                const player = event.data.points[i];
-                                if(curr!=player.points){
+                        setRoomState(prev => {
+                            const totalPoints = prev.players.map(info => ({
+                                id: info.player.id,
+                                points: info.points + (event.data.points.find(
+                                    p => p.id === info.player.id
+                                )?.points ?? 0)
+                            }));
+
+                            totalPoints.sort((a, b) => b.points - a.points);
+
+                            const rankMap = new Map();
+                            let rank = 0;
+                            let curr = -1;
+
+                            for (const player of totalPoints) {
+                                if (player.points !== curr) {
                                     curr = player.points;
                                     rank++;
                                 }
-                                rankMap.set(player.id, rank)
+                                rankMap.set(player.id, rank);
                             }
-                            let map = new Map();
-                            event.data.points.forEach(player=> map.set(player.id, player.points))
-                            return {...prev, 
+
+                            const roundPointsMap = new Map();
+                            event.data.points.forEach(p =>
+                                roundPointsMap.set(p.id, p.points)
+                            );
+
+                            return {
+                                ...prev,
                                 status: "DRAWER_SELECTING_WORD",
                                 phaseDeadLine: event.data.phaseDeadLine,
                                 drawer: event.data.drawer,
                                 drawerId: event.data.drawerId,
-                                currentHiddenWord:null,
-                                currentRound:event.data.newRoundIndex,
-                                players: prev.players.map(info=>{
-                                return {
+                                currentHiddenWord: null,
+                                currentRound: event.data.newRoundIndex,
+                                players: prev.players.map(info => ({
                                     ...info,
-                                    points: info.points+ map.get(info.player.id),
+                                    points: info.points + (roundPointsMap.get(info.player.id) ?? 0),
                                     rank: rankMap.get(info.player.id)
-                                }
-                            })}
-                        })
+                                }))
+                            };
+                        });
 
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
@@ -326,7 +343,17 @@ function Room() {
                         }
                         ctx.stroke()
                     }else if(event.type === "GAME_END"){
+                        moveToLeaderBoard.current = true
                         navigate("/leaderboard/"+roomId,{replace:true})
+                    }else if(event.type === "PLAYER_EXIT"){
+                        console.log("got exit message");
+                        setRoomState(prev=>{
+                            return {...prev,
+                                players: prev.players.filter(playerData=>{
+                                    return playerData.player.id != event.initiator.id;
+                                })
+                            }
+                        })
                     }
                 }
             );
@@ -424,36 +451,44 @@ function Room() {
                         }
                     }else if(event.type === "ROUND_END"){
 
-                        event.data.points.sort((a, b) => b.points - a.points)
-                        let rankMap = new Map();
-                        let rank = 0, curr = -1;
-                        for(let i = 0;i<event.data.points.length;i++){
-                            const player = event.data.points[i];
-                            if(curr!=player.points){
+                        const roundPointsMap = new Map();
+                        event.data.points.forEach(player => {
+                            roundPointsMap.set(player.id, player.points);
+                        });
+
+                        const totalScores = data.players.map(info => ({
+                            id: info.player.id,
+                            points: info.points + (roundPointsMap.get(info.player.id) ?? 0)
+                        }));
+
+                        totalScores.sort((a, b) => b.points - a.points);
+
+                        const rankMap = new Map();
+                        let rank = 0;
+                        let curr = -1;
+
+                        for (const player of totalScores) {
+                            if (player.points !== curr) {
                                 curr = player.points;
                                 rank++;
                             }
-                            rankMap.set(player.id, rank)
+                            rankMap.set(player.id, rank);
                         }
 
-                        let map = new Map();
-                        event.data.points.forEach(player=> map.set(player.id, player.points))
-
-                        data = {...data, 
-                                status: "DRAWER_SELECTING_WORD",
-                                phaseDeadLine: event.data.phaseDeadLine,
-                                drawer: event.data.drawer,
-                                drawerId: event.data.drawerId,
-                                currentHiddenWord:null,
-                                currentRound:event.data.newRoundIndex,
-                                players: data.players.map(info=>{
-                                    return {
-                                        ...info,
-                                        points: info.points+ map.get(info.player.id),
-                                        rank: rankMap.get(info.player.id)
-                                    }
-                                })
-                            }
+                        data = {
+                            ...data,
+                            status: "DRAWER_SELECTING_WORD",
+                            phaseDeadLine: event.data.phaseDeadLine,
+                            drawer: event.data.drawer,
+                            drawerId: event.data.drawerId,
+                            currentHiddenWord: null,
+                            currentRound: event.data.newRoundIndex,
+                            players: data.players.map(info => ({
+                                ...info,
+                                points: info.points + (roundPointsMap.get(info.player.id) ?? 0),
+                                rank: rankMap.get(info.player.id)
+                            }))
+                        };
                         
                         const ctx = canvasRef.current.getContext("2d");
                         ctx.clearRect(0,0,canvasRef.current.width, canvasRef.current.height)
@@ -474,10 +509,19 @@ function Room() {
 
                     }else if(event.type === "GAME_END"){
                         game.status = "ENDED"
-                    }   
+                    }else if(event.type === "PLAYER_EXIT"){
+                        console.log("got exit message");
+                        
+                        data = {...data,
+                                players: data.players.filter(playerData=>{
+                                    return playerData.player.id != event.initiator.id;
+                                })
+                            }
+                    } 
                 }
 
                 if(data.status === "ENDED"){
+                    moveToLeaderBoard.current = true
                     navigate("/leaderboard/"+roomId,{replace:true})
                 }
 
@@ -624,6 +668,11 @@ function Room() {
         await fetchChooseWord('/chooseWord', {word})
     }
 
+    const exitGame = async()=>{
+        await exitGameFetch("/exitGame");
+        navigate("/",{replace:true})
+    }
+
 
     
     // canvas 
@@ -636,6 +685,8 @@ function Room() {
     const canvasEvent = useRef([])
     const {fetch: sendCanvasEvents} = usePostFetch()
     const sendingEvents = useRef(false)
+    const currentColorDisplay = useRef(null)
+
 
     useEffect(()=>{
         if(roomState.status !== "PLAYER_DRAWING" || roomState.drawerId !== auth.id) return;
@@ -757,6 +808,13 @@ function Room() {
             canvas.addEventListener("mouseleave", mouseUpOrMoueLeaveEvent)
             canvas.addEventListener("mousemove",mouseMoveEvent)
 
+
+            return ()=>{
+                if(moveToLeaderBoard.current === false){
+                    exitGame()
+                }
+            }
+
     },[])
    
   return (
@@ -769,8 +827,9 @@ function Room() {
                     Are you sure you want to exit this room
                     <div className="flex justify-around mt-15 text-white">
                         <button onClick={(e)=>{
-                   
-                        }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {/* {exiting ? <img src={rolling} className="h-12"></img>:""} */}</button>
+                            e.stopPropagation();
+                            exitGame();
+                        }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {exiting ? <img src={rolling} className="h-12"></img>:""}</button>
                         <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
                     </div>
                 </div>
@@ -871,7 +930,7 @@ function Room() {
                 </canvas>
                 {roomState.drawerId === auth.id &&
                     <div className={`mt-2 gap-2 flex justify-center`}>
-                        <div className="h-14 w-14 aspect-square rounded-md bg-blue-600">
+                        <div ref={currentColorDisplay} className="h-14 w-14 aspect-square rounded-md bg-black">
                                 
                         </div>
                         <div>
@@ -883,6 +942,7 @@ function Room() {
                                         style={{ backgroundColor: c }}
                                         onClick={() => {
                                             color.current = c;
+                                            currentColorDisplay.current.style.backgroundColor = c
                                         }}
                                     />
                                 ))}
@@ -896,6 +956,7 @@ function Room() {
                                         style={{ backgroundColor: c }}
                                         onClick={() => {
                                             color.current = c;
+                                            currentColorDisplay.current.style.backgroundColor = c
                                         }}
                                     />
                                 ))}

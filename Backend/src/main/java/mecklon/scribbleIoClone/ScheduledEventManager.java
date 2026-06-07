@@ -338,4 +338,45 @@ public class ScheduledEventManager {
             }
         }
     }
+    @Scheduled(fixedDelay = 5000)
+    public void cleanUpOfflinePlayers(){
+        Set<String> players = redisTemplate.opsForSet().members("offlinePlayers");
+
+        if(players == null || players.isEmpty()) return;
+        for(String playerId : players){
+
+            // check per character keep the window for stale data small as possible, stale value is read which happends when use reconnects but now the blow code still disconnects them meaning they are now kicked out
+            String deadlineString = (String)redisTemplate.opsForHash().get(playerId+":info", "offlineSince");
+            if(deadlineString == null)continue;
+
+            Long deadline = Long.valueOf(deadlineString)+60_000;
+            if(System.currentTimeMillis() < deadline) continue;
+
+
+            String roomId = redisTemplate.opsForValue().get(playerId+":room");
+            if(roomId==null)continue;
+
+            GameRoomStatus status = GameRoomStatus.valueOf((String) redisTemplate.opsForHash().get(roomId+":info","status"));
+            if(status != GameRoomStatus.DRAWING && status!=GameRoomStatus.DRAWER_SELECTING_WORD ) continue;
+
+            redisTemplate.delete(playerId+":room");
+            redisTemplate.opsForSet().add(roomId+":exitedMembers", playerId);
+            redisTemplate.opsForSet().remove("offlinePlayers",playerId);
+            redisTemplate.opsForSet().remove(roomId+":playersInGame",playerId);
+            redisTemplate.opsForHash().delete(playerId + ":info", "offlineSince");
+
+            String json = (String)redisTemplate.opsForHash().get(roomId+":playerMeta", playerId);
+            if(json == null) continue;
+            PlayerDTO player = objectMapper.readValue(json, PlayerDTO.class);
+
+
+            messagingTemplate.convertAndSend(
+                    "/topic/room/" + roomId,
+                    GameEventDTO.builder()
+                            .initiator(new PlayerDTO(player.getId(),player.getUsername(), player.getEmail(),null))
+                            .type(GameEventType.PLAYER_EXIT)
+                            .build()
+            );
+        }
+    }
 }

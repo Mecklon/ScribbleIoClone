@@ -41,6 +41,8 @@ function RoomLobby() {
 
     const [showComfirmationBox, setShowConfirmationBox] = useState(false);
 
+    const joinGameRef = useRef(false);
+
 
     useEffect(() => {
         if (!wsConnected) return;
@@ -68,6 +70,7 @@ function RoomLobby() {
                         setTimePerRound(event.data.timePerRound)
                     }
                 }else if(event.type === "PLAYERS_SWITCHING_TO_GAME" && host!==auth.id){
+                    joinGameRef.current = true;
                     navigate("/room/"+roomId,{replace:true});
                 }else if(event.type === "PLAYER_EXIT"){
                     setPlayers(prev=>{return prev.filter(item=> item.id!==event.initiator.id)})
@@ -150,6 +153,16 @@ function RoomLobby() {
         await exitFetch("/exitLobby");
         navigate("/", { replace: true });
     };
+
+
+
+    useEffect(()=>{
+        return ()=>{
+            if(joinGameRef.current = false){
+                exitLobby()
+            }
+        }
+    },[])
     
   return (
     <div className="p-5 flex flex-col gap-5 h-screen">

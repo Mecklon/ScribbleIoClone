@@ -290,11 +290,14 @@ public class GameService {
     public RoomSnapshot joinGame(String roomId, Authentication auth) {
         CustomUserDetails userDetails = (CustomUserDetails)auth.getPrincipal();
         Boolean isMember = redisTemplate.opsForSet().isMember(roomId+":members",userDetails.getId());
-        if(!isMember){
+        Boolean isExitedMember = redisTemplate.opsForSet().isMember(roomId+":exitedMembers", userDetails.getId());
+        if(!isMember || isExitedMember){
             throw new GameException(HttpStatus.FORBIDDEN, GameExceptionType.USER_NOT_PART_OF_GROUP, "You are not a player of this group");
         }
+
         Long added = redisTemplate.opsForSet().add(roomId+":playersInGame",userDetails.getId());
-        redisTemplate.opsForHash().delete(roomId + ":offlineSince", userDetails.getId());
+        redisTemplate.opsForHash().delete(userDetails.getId() + ":info", "offlineSince");
+        redisTemplate.opsForSet().remove("offlinePlayers",userDetails.getId());
         if(!Objects.equals(added, 0L)){
             Long totalSize = redisTemplate.opsForSet().size(roomId + ":members");
             Long currentSize = redisTemplate.opsForSet().size(roomId+":playersInGame");
@@ -590,6 +593,10 @@ public class GameService {
                     // below commited code is wrong have set status much later, but creates a window for schedules event to clash
                     //redisTemplate.opsForHash().put(roomId+":info","status", GameRoomStatus.DRAWER_SELECTING_WORD.name());
 
+
+                    // fetching the members and exited members beforehand to reduce redis hits while looping, but
+                    // this increase the window in which exited members list could become stale, if exited players are given the drawer time
+                    // make its check per loop but redis hits will increase
                     Set<String> membersSet = redisTemplate.opsForSet().members(roomId+":members");
                     Set<String> exitedMembersSet = redisTemplate.opsForSet().members(roomId+":exitedMembers");
 
@@ -869,7 +876,7 @@ public class GameService {
         if(roomId==null)return;
         GameRoomStatus status = GameRoomStatus.valueOf((String) redisTemplate.opsForHash().get(roomId+":info","status"));
         if(status != GameRoomStatus.LOBBY) return;
-        redisTemplate.opsForSet().add(roomId+":exitedMembers", userDetails.getId());
+        redisTemplate.opsForSet().add(roomId+":members", userDetails.getId());
         messagingTemplate.convertAndSend(
                 "/topic/room/" + roomId,
                 GameEventDTO.builder()
@@ -877,7 +884,32 @@ public class GameService {
                         .type(GameEventType.PLAYER_EXIT)
                         .build()
         );
-        System.out.println("we alright");
+    }
+
+    public void removeFromGame(Authentication auth) {
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+
+        String roomId = redisTemplate.opsForValue().get(userDetails.getId()+":room");
+        if(roomId == null){
+            return;
+        }
+        String statusString = (String) redisTemplate.opsForHash().get(roomId+":info","status");
+        if(statusString == null)return;
+        GameRoomStatus status = GameRoomStatus.valueOf(statusString);
+        if(status != GameRoomStatus.DRAWER_SELECTING_WORD && status != GameRoomStatus.DRAWING) return;
+
+
+        redisTemplate.delete(userDetails.getId()+":room");
+        redisTemplate.opsForSet().add(roomId+":exitedMembers", userDetails.getId());
+        redisTemplate.opsForSet().remove(roomId+":playersInGame",userDetails.getId());
+
+        messagingTemplate.convertAndSend(
+                "/topic/room/" + roomId,
+                GameEventDTO.builder()
+                        .initiator(new PlayerDTO(userDetails.getId(),userDetails.getDisplayUsername(), userDetails.getUsername(),null))
+                        .type(GameEventType.PLAYER_EXIT)
+                        .build()
+        );
     }
 }
 

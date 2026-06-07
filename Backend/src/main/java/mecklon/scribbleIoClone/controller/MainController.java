@@ -108,8 +108,14 @@ public class MainController {
 
 
     @GetMapping("/exitLobby")
-    public ResponseEntity<Void> getLeaderboard(Authentication auth){
+    public ResponseEntity<Void> exitLobby(Authentication auth){
         gameService.removeFromLobby(auth);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @GetMapping("/exitGame")
+    public ResponseEntity<Void> exitGame(Authentication auth){
+        gameService.removeFromGame(auth);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
