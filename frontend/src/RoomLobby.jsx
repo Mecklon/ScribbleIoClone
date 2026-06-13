@@ -8,6 +8,7 @@ import rolling from './assets/rolling.gif';
 import usePostFetch from "./hooks/usePostFetch";
 import { BiDoorOpen } from "react-icons/bi";
 
+
 function RoomLobby() {
 
 
@@ -43,6 +44,8 @@ function RoomLobby() {
 
     const joinGameRef = useRef(false);
 
+    
+
 
     useEffect(() => {
         if (!wsConnected) return;
@@ -56,11 +59,11 @@ function RoomLobby() {
 
                 const event = JSON.parse(payload.body)
                 if(event.type === "NEW_MEMBER_JOINED"){
-                    if (event.initiator === auth.username) return;
+                    if (event.initiator.id === auth.id) return;
                     setPlayers(prev => [
                         ...prev,
                         event.initiator
-                    ]);
+                    ]);    
                 }else if(event.type === "SETTINGS_CHANGED" && host !== auth.id){
                     if(event.data.rounds!=rounds){
                         setRounds(event.data.rounds)

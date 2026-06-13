@@ -18,6 +18,8 @@ import rolling from './assets/rolling.gif';
 import { LuPaintBucket } from "react-icons/lu";
 import { IoMdColorFill } from "react-icons/io";
 import { BiDoorOpen } from "react-icons/bi";
+import { useDispatch } from "react-redux";
+import { addErrorWithTimeout } from "../store/ErrorSlice";
 
 const colors = [
     "#808080",
@@ -126,6 +128,8 @@ function Room() {
     const [showComfirmationBox, setShowConfirmationBox] = useState(false);
 
     const moveToLeaderBoard = useRef(false);
+
+    const dispatch = useDispatch()
  
 
     useEffect(() => {
@@ -354,6 +358,10 @@ function Room() {
                                 })
                             }
                         })
+                        dispatch(addErrorWithTimeout({
+                            type:"NOTIFICATION",
+                            message:event.data.message
+                        }))
                     }
                 }
             );
@@ -875,7 +883,7 @@ function Room() {
                     })
                 }
             </div>
-            <div className="text-center bg-amber-600 font-bold text-2xl p-2 rounded-md">Kick player</div>
+           {/*  <div className="text-center bg-amber-600 font-bold text-2xl p-2 rounded-md">Kick player</div> */}
         </div>
         <div className="grow relative">
                 {

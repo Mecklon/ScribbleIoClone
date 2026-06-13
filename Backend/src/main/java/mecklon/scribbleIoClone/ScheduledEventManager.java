@@ -375,6 +375,7 @@ public class ScheduledEventManager {
                     GameEventDTO.builder()
                             .initiator(new PlayerDTO(player.getId(),player.getUsername(), player.getEmail(),null))
                             .type(GameEventType.PLAYER_EXIT)
+                            .data(Map.of("message",player.getUsername() + "was kicked out due to disconnect timeout"))
                             .build()
             );
         }

@@ -908,6 +908,7 @@ public class GameService {
                 GameEventDTO.builder()
                         .initiator(new PlayerDTO(userDetails.getId(),userDetails.getDisplayUsername(), userDetails.getUsername(),null))
                         .type(GameEventType.PLAYER_EXIT)
+                        .data(Map.of("message",userDetails.getDisplayUsername()+" left the game"))
                         .build()
         );
     }
