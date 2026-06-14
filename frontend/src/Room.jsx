@@ -20,6 +20,7 @@ import { IoMdColorFill } from "react-icons/io";
 import { BiDoorOpen } from "react-icons/bi";
 import { useDispatch } from "react-redux";
 import { addErrorWithTimeout } from "../store/ErrorSlice";
+import { AnimatePresence, motion } from "motion/react";
 
 const colors = [
     "#808080",
@@ -828,21 +829,30 @@ function Room() {
   return (
     <div className="py-7 px-5 flex flex-col gap-3 h-screen">
         <BiDoorOpen onClick={()=>setShowConfirmationBox(true)} className="text-white text-5xl duration-300 hover:scale-110 fixed top-6 right-6"/>
-        {
-            showComfirmationBox &&
-            <div onClick={()=>{setShowConfirmationBox(false)}} className="fixed inset-0 z-10 backdrop-blur-sm flex items-center justify-center">
-                <div onClick={e=>e.stopPropagation()} className="bg-white p-7 shadow-2xl border border-gray-500 rounded-3xl text-3xl font-semibold">
-                    Are you sure you want to exit this room
-                    <div className="flex justify-around mt-15 text-white">
-                        <button onClick={(e)=>{
-                            e.stopPropagation();
-                            exitGame();
-                        }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {exiting ? <img src={rolling} className="h-12"></img>:""}</button>
-                        <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
-                    </div>
-                </div>
-            </div>
-        }
+
+            {
+                showComfirmationBox &&
+                <motion.div
+                initial={{ backdropFilter: "blur(0px)" }}
+                animate={{ backdropFilter: "blur(8px)" }}
+                transition={{ duration: 0.3 }}
+                onClick={()=>{setShowConfirmationBox(false)}} className="fixed inset-0 z-10  flex items-center justify-center">
+                    <motion.div 
+                    initial={{ y: 150,opacity: 0,}}
+                    animate={{ y: 0,opacity: 1, }}
+                    transition={{ duration: 0.3,ease: [0.16, 1, 0.3, 1] }}
+                    onClick={e=>e.stopPropagation()} className="bg-white p-7 shadow-2xl border border-gray-500 rounded-3xl text-3xl font-semibold">
+                        Are you sure you want to exit this room
+                        <div className="flex justify-around mt-15 text-white">
+                            <button onClick={(e)=>{
+                                e.stopPropagation();
+                                exitGame();
+                            }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {exiting ? <img src={rolling} className="h-12"></img>:""}</button>
+                            <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            }
       <div className="flex gap-1 items-center text-white">
         <PiScribbleDuotone className="text-6xl " />
         <div className="text-4xl font-bold">Scribblr</div>
@@ -888,10 +898,17 @@ function Room() {
         <div className="grow relative">
                 {
                     eventIndex!=null && events.length!=0 &&
-                    <div className="bg-black/50 absolute top-0 left-0 right-0 h-full text-white p-3">
+                    <div className="bg-black/50 absolute overflow-clip top-0 left-0 right-0 h-full text-white p-3">
+                        <AnimatePresence mode="wait">
                         {
                             events[eventIndex].type === "POINTS" && 
-                            <div className="flex flex-col h-full text-4xl justify-center items-center">
+                            <motion.div
+                            key={`${eventIndex}-${events[eventIndex].type}`}
+                            initial={{ x: "100%" }}
+                            animate={{ x: "0" }}
+                            exit={{ x:"-100%" }}
+                            transition={{ duration: 0.3 }}
+                            className="flex flex-col h-full text-4xl justify-center items-center">
                                 {
                                     events[eventIndex].playerPoints.map((player)=>{
                                         return <div key={player.id} className="flex gap-3">
@@ -900,18 +917,30 @@ function Room() {
                                         </div>
                                     })
                                 }
-                            </div>
+                            </motion.div>
 
                         }
                         {
                             events[eventIndex].type === "DRAWER_INTRO" && roomState.drawerId !== auth.id &&
-                            <div className="flex flex-col h-full text-4xl justify-center items-center">
+                            <motion.div
+                            key={`${eventIndex}-${events[eventIndex].type}`}
+                            initial={{ x: "100%" }}
+                            animate={{ x: "0" }}
+                            exit={{ x:"-100%" }}
+                            transition={{ duration: 0.3 }}
+                            className="flex flex-col h-full text-4xl justify-center items-center">
                                 {`${roomState.drawer} is picking a word`}
-                            </div>
+                            </motion.div>
                         }
                         {
                             events[eventIndex].type === "DRAWER_INTRO" && roomState.drawerId === auth.id &&
-                            <div className="flex flex-col gap-10 h-full text-4xl justify-center items-center">
+                            <motion.div
+                            key={`${eventIndex}-${events[eventIndex].type}`}
+                            initial={{ x: "100%" }}
+                            animate={{ x: "0" }}
+                            exit={{ x:"-100%" }}
+                            transition={{ duration: 0.3 }}
+                            className="flex flex-col gap-10 h-full text-4xl justify-center items-center">
                                 <div className="text-center text-3xl">Your are the drawer select the word you want to draw: </div>
                                 
                                 <div className="flex flex-wrap gap-4">
@@ -921,14 +950,20 @@ function Room() {
                                     })}
 
                                 </div>
-                            </div>
+                            </motion.div>
                         }
                         {
                             events[eventIndex].type === "NEW_ROUND" &&
-                            <div className="text-center text-7xl h-full font-semibold flex items-center justify-center ">
+                            <motion.div
+                            key={`${eventIndex}-${events[eventIndex].type}`}
+                            initial={{ x: "100%" }}
+                            animate={{ x: "0" }}
+                            exit={{ x:"-100%" }}
+                            transition={{ duration: 0.3 }} className="text-center text-7xl h-full font-semibold flex items-center justify-center ">
                                 Round: {roomState.currentRound}
-                            </div>
+                            </motion.div>
                         }
+                        </AnimatePresence>
                     </div>
                 }
                 <canvas  

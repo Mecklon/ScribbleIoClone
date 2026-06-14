@@ -438,10 +438,10 @@ public class GameService {
             return output;
         }
         for(int i =0;i< 3;i++){
-            if(!customWordsOnly){
-                output.add(words[random.nextInt(words.length)]);
+            if(customWordsOnly){
+                output.add(listOfCustomWords.get(random.nextInt(listOfCustomWords.size())));
             }else{
-                if(random.nextInt(10)>5){
+                if(random.nextInt(10)>5 || listOfCustomWords.isEmpty()){
                     output.add(words[random.nextInt(words.length)]);
                 }else{
                     output.add(listOfCustomWords.get(random.nextInt(listOfCustomWords.size())));

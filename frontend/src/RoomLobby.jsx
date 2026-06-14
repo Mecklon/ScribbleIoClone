@@ -7,14 +7,16 @@ import { useSelector } from "react-redux";
 import rolling from './assets/rolling.gif';
 import usePostFetch from "./hooks/usePostFetch";
 import { BiDoorOpen } from "react-icons/bi";
+import { motion } from "motion/react";
 
 
 function RoomLobby() {
-
-
+    console.log("in lobby")
+    
     const auth= useSelector(store=>store.auth)
-
+    
     const {roomId} = useParams();
+    console.log(roomId)
 
     const {loading, error, fetch} = useGetFetch();
     const {loading: startingGame, error: gameStartError, fetch:startGameFetch} = usePostFetch();
@@ -50,6 +52,7 @@ function RoomLobby() {
     useEffect(() => {
         if (!wsConnected) return;
         if (!roomId) {
+            console.log("no room id")
             navigate("/",{replace:true});
             return;
         }
@@ -74,6 +77,7 @@ function RoomLobby() {
                     }
                 }else if(event.type === "PLAYERS_SWITCHING_TO_GAME" && host!==auth.id){
                     joinGameRef.current = true;
+                    console.log("switching to game")
                     navigate("/room/"+roomId,{replace:true});
                 }else if(event.type === "PLAYER_EXIT"){
                     setPlayers(prev=>{return prev.filter(item=> item.id!==event.initiator.id)})
@@ -139,7 +143,18 @@ function RoomLobby() {
                     return
                 }
             }
-        }   
+
+            if(checkBoxRef.current.checked && words.length  < 10){
+                setCustomWordError("You need to enter atleast 10 words for custom words only mode");
+                return;
+            }
+        }  
+        
+        if(players.length<=1){
+            setCustomWordError("You need atleast two members to start the game");
+            return;
+        }
+        
         await startGameFetch("/startGame",{
             roomId,
             timePerRound: timeInputRef.current.value,
@@ -147,12 +162,14 @@ function RoomLobby() {
             customWords: customWordsInputRef.current.value.toUpperCase().trim(),
             onlyCustomWords: checkBoxRef.current.checked
         })
+        console.log("gamestart exit")
         navigate("/room/"+roomId,{replace:true});
     }
 
 
     const exitLobby = async () => {
         //edge case: another race condition the game is switched from lobby to game, grace time is given to players to join the game , which now if exactly at the same time the player exits but his frontend also got the join game message and also hit the join game route , now the player is in race with himself
+        console.log("self exit")
         await exitFetch("/exitLobby");
         navigate("/", { replace: true });
     };
@@ -171,8 +188,18 @@ function RoomLobby() {
     <div className="p-5 flex flex-col gap-5 h-screen">
         {
             showComfirmationBox &&
-            <div onClick={()=>{setShowConfirmationBox(false)}} className="fixed inset-0 backdrop-blur-sm flex items-center justify-center">
-                <div onClick={e=>e.stopPropagation()} className="bg-white p-7 shadow border border-gray-600 shadow-2xl rounded-3xl text-3xl font-semibold">
+            <motion.div onClick={()=>{setShowConfirmationBox(false)}} 
+            initial={{ backdropFilter: "blur(0px)" }}
+            animate={{ backdropFilter: "blur(8px)" }}
+            exit={{ backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 flex items-center justify-center">
+                <motion.div
+                initial={{ y: 150,opacity: 0,}}
+                animate={{ y: 0,opacity: 1, }}
+                exit={{ y: 150,opacity: 0,}}
+                transition={{ duration: 0.3,ease: [0.16, 1, 0.3, 1] }}
+                 onClick={e=>e.stopPropagation()} className="bg-white p-7  border border-gray-600 shadow-2xl rounded-3xl text-3xl font-semibold">
                     Are you sure you want to exit this room
                     <div className="flex justify-around mt-15 text-white">
                         <button onClick={(e)=>{
@@ -180,8 +207,8 @@ function RoomLobby() {
                         }} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-red-500 flex gap-2 items-center">Yes {exiting ? <img src={rolling} className="h-12"></img>:""}</button>
                         <button onClick={()=>setShowConfirmationBox(false)} className="p-3 rounded-2xl px-6 duration-300 hover:scale-110 bg-gray-700">No</button>
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         }
         <BiDoorOpen onClick={()=>setShowConfirmationBox(true)} className="fixed right-6 top-6 text-5xl duration-300 hover:scale-110 text-white"/>
         {

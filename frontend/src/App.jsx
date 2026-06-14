@@ -43,12 +43,14 @@ function App() {
         setAuthChecked(true);
       }
     };
-
+    
     autoLogin();
   }, [auth.token]);
 
   if (!authChecked) {
-    return <div>loading..</div>;
+    return <div className="flex h-screen items-center justify-center">
+      Signing you in...
+    </div>
   }
 
   return (
