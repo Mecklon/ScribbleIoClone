@@ -1,6 +1,6 @@
 package mecklon.scribbleIoClone.controller;
 
-import com.mongodb.client.MongoClient;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import mecklon.scribbleIoClone.Exceptions.UserAlreadyExistsException;
 import mecklon.scribbleIoClone.configuration.JwtUtil;
@@ -83,17 +83,6 @@ public class AuthController {
 
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(user.getId(),token, request.getEmail(), request.getUsername(),null));
-    }
-
-
-
-    @Autowired
-    private org.springframework.core.env.Environment env;
-
-    @GetMapping("/db")
-    public String db() {
-        return "database = " + env.getProperty("spring.data.mongodb.database")
-                + "\nuri = " + env.getProperty("spring.data.mongodb.uri");
     }
 
 }

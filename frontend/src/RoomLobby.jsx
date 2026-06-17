@@ -8,6 +8,8 @@ import rolling from './assets/rolling.gif';
 import usePostFetch from "./hooks/usePostFetch";
 import { BiDoorOpen } from "react-icons/bi";
 import { motion } from "motion/react";
+import avatar from './assets/defaultAvatar.webp'
+
 
 
 function RoomLobby() {
@@ -278,7 +280,7 @@ function RoomLobby() {
                 {
                     players.map(item=>{
                         return <div key={item.email} className="flex flex-col p-2 w-60 items-center justify-center  ">
-                                    <Image className="w-[80%] bg-blac  rounded-full aspect-square" path={item.profile}></Image>
+                                    <Image fallback={avatar} className="w-[80%] bg-blac  rounded-full aspect-square" path={item.profile}></Image>
                                     <div className="text-2xl text-white font-semibold text-center">{item.username}</div>
                                 </div>
                     })

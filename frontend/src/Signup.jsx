@@ -20,7 +20,8 @@ function Signup() {
 
     const dispatch = useDispatch();
 
-    const handleSignup = async ()=>{
+    const handleSignup = async (e)=>{
+        e.preventDefault();
         const email = emailRef.current.value.trim();
         const password = passwordRef.current.value.trim();
         const username = usernameRef.current.value.trim();
@@ -72,7 +73,7 @@ function Signup() {
 
    return (
     <div className="flex items-center justify-center h-screen">
-      <div className="aspect-7/8 border bg-blue-500/50 border-gray-500  rounded-md shadow-2xl p-5">
+      <form className="aspect-7/8 border bg-blue-500/50 border-gray-500  rounded-md shadow-2xl p-5">
         <div className="flex gap-1 items-center">
           <PiScribbleDuotone className="text-5xl" />
           <div className="text-3xl font-bold">Scribblr</div>
@@ -82,19 +83,19 @@ function Signup() {
                     <div className="text-red-700 text-xs absolute top-24 left-1">{emailError.message}</div>
                 }
             </div>
-          <input ref={emailRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(emailError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input id='email' ref={emailRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(emailError)? "border-red-700":"border-blue-600"} border-4`}/>
             <div className="text-3xl font-semibold mt-7 relative">Username
                 {usernameError &&
                     <div className="text-red-700 text-xs absolute top-24 left-1">{usernameError.message}</div>
                 }
             </div>
-          <input ref={usernameRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(usernameError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input id='username' ref={usernameRef} type="email" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(usernameError)? "border-red-700":"border-blue-600"} border-4`}/>
             <div className="text-3xl font-semibold mt-7 relative">Password
                 {passwordError &&
                     <div className="text-red-700 text-xs absolute top-24 left-1">{passwordError.message}</div>
                 }
             </div>
-          <input ref={passwordRef} type="text" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(passwordError)? "border-red-700":"border-blue-600"} border-4`}/>
+          <input id='password' ref={passwordRef} type="password" className={`w-full  mt-3 text-2xl bg-white p-1 outline-0 rounded-sm ${(passwordError)? "border-red-700":"border-blue-600"} border-4`}/>
           <button onClick={handleSignup} className="bg-blue-900 relative text-white text-center font-semibold w-full mt-10 p-2 text-3xl rounded-sm">Signup
             {
                 loading && <img className="absolute h-10 top-2 left-[63%]" src={rolling} alt="" />
@@ -110,7 +111,7 @@ function Signup() {
             Already have an account? 
           <Link className="text-blue-950 underline ml-1" to="/loging">Login</Link>
           </div>
-      </div>
+      </form>
     </div>
   );
 }

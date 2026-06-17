@@ -93,8 +93,8 @@ function menu() {
         {
           showButtons &&
           <>
-            <RxCross1 onClick={handleCancel} className="absolute left-2 top-2 text-2xl hover:scale-145 duration-300"/>
-            <IoCheckmarkOutline onClick={handleProfileChange} className="absolute right-2 top-2 text-3xl hover:scale-145 duration-300"/>
+            <RxCross1 onClick={handleCancel} className="absolute left-2 top-2 text-2xl hover:scale-145 duration-300 text-white"/>
+            <IoCheckmarkOutline onClick={handleProfileChange} className="absolute right-2 top-2 text-3xl hover:scale-145 duration-300 text-white "/>
           </>
         }
         <label htmlFor="imageInput">

@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: "./Backend"
+    ports:
+      - "9090:9090"
+    networks:
+      - myNetwork
+    depends_on:
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  frontend:
+    build: "./frontend"
+    ports:
+      - "5173:80"
+    networks:
+      - myNetwork
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:latest
+    networks:
+      - myNetwork
+
+networks:
+  myNetwork:
+    driver: bridge

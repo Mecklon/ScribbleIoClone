@@ -48,7 +48,7 @@ function App() {
   }, [auth.token]);
 
   if (!authChecked) {
-    return <div className="flex h-screen items-center justify-center">
+    return <div className="flex h-screen items-center text-3xl text-white font-semibold justify-center">
       Signing you in...
     </div>
   }

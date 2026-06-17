@@ -1,5 +1,6 @@
 package mecklon.scribbleIoClone.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -17,16 +18,22 @@ import java.nio.file.Paths;
 @RequestMapping("/api/files")
 public class FileController {
 
-    private final String uploadDir = "C:/Users/Mecklon Fernandes/Desktop/code/ScribbleIoClone/backend/uploads";
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     @GetMapping("/{filename}")
     public ResponseEntity<Resource> getFile(@PathVariable String filename) throws MalformedURLException {
-        Path path = Paths.get(uploadDir).resolve(filename);
-        Resource resource = new UrlResource(path.toUri());
+        try{
+            Path path = Paths.get(uploadDir).resolve(filename);
+            Resource resource = new UrlResource(path.toUri());
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                .body(resource);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        }catch (Exception e){
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
 

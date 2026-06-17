@@ -39,7 +39,13 @@ const Image = ({
   }, [path]);
 
   if (loading) {
-    return <div>Loading.....</div>;
+    return (
+      <img
+        src={fallback}
+        className={className}
+        alt=""
+      />
+    );
   }
   return (
     <img

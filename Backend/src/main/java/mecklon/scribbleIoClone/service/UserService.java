@@ -22,17 +22,22 @@ public class UserService {
     private String uploadDir;
 
     public ProfileDTO updateProfile(MultipartFile profile, String username, Authentication auth) throws IOException {
-        UserDetails userDetails = (UserDetails)auth.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername());
-        if(profile!=null) {
-            String uniqueName = System.currentTimeMillis() + "-" + profile.getOriginalFilename();
-            String path = uploadDir + File.separator + uniqueName;
-            profile.transferTo(new File(path));
-            user.setFilePath(path);
-            user.setFileName(uniqueName);
+        try{
+            UserDetails userDetails = (UserDetails)auth.getPrincipal();
+            User user = userRepository.findByEmail(userDetails.getUsername());
+            if(profile!=null) {
+                String uniqueName = System.currentTimeMillis() + "-" + profile.getOriginalFilename();
+                String path = uploadDir + File.separator + uniqueName;
+                profile.transferTo(new File(path));
+                user.setFilePath(path);
+                user.setFileName(uniqueName);
+            }
+            user.setUsername(username);
+            User newUser =  userRepository.save(user);
+            return new ProfileDTO(newUser.getUsername(), newUser.getFileName());
+        }catch(Exception e){
+            e.printStackTrace();
+            throw e;
         }
-        user.setUsername(username);
-        User newUser =  userRepository.save(user);
-        return new ProfileDTO(newUser.getUsername(), newUser.getFileName());
     }
 }
