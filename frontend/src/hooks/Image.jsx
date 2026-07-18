@@ -18,7 +18,7 @@ const Image = ({
     const getData = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`http://localhost:9090/api/files/${path}`, {
+        const res = await api.get(`http://${window.location.host}/api/files/${path}`, {
           responseType: "blob",
         });
         objectUrl = URL.createObjectURL(res.data);

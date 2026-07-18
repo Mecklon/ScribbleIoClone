@@ -99,7 +99,7 @@ function RoomLobby() {
    
 
     const handleMouseOver = ()=>{
-        linkRef.current.innerText = "http://localhost:5173/roomLobby/"+roomId
+        linkRef.current.innerText = `http://${window.location.host}/roomLobby/`+roomId
     }
 
     const handleMouseLeave = ()=>{
@@ -295,7 +295,7 @@ function RoomLobby() {
                 <div ref={linkRef} className="grow bg-white text-center p-2 px-3 text-stone-800 text-3xl
                 ">hover your mouse to get the link</div>
                 <div onClick={()=>{
-                    navigator.clipboard.writeText("http://localhost:5173/roomLobby/"+roomId);
+                    navigator.clipboard.writeText(`http://${window.location.host}/roomLobby/`+roomId);
                 }} className="bg-yellow-600 p-2 px-3 text-3xl text-white cursor-pointer">copy</div>
             </div>
         </div>

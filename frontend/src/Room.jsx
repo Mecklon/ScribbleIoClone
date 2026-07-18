@@ -368,7 +368,7 @@ function Room() {
             );
             const join = async () => {
                 bufferEvents.current = true;
-                let data = await fetch("joinGame/"+roomId)
+                let data = await fetch("/joinGame/"+roomId)
                 bufferEvents.current = false;
                 data.chats
                 let newEvents = []
