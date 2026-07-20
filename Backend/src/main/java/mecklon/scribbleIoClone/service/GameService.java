@@ -649,7 +649,7 @@ public class GameService {
                         reachedEnd = true;
                     }
                     String newDrawerId = null;
-                    for(String newId: newDrawerIdSet) newDrawerId = newId;
+                    for(String newId: newDrawerIdSet) newDrawerId = newId;  // runs once since range starts and ends at newDrawrIndex
                     System.out.println("new drawer id set: "+newDrawerIdSet);
                     if(!reachedEnd){
                         while(exitedMembersSet.contains(newDrawerId)){
@@ -660,7 +660,7 @@ public class GameService {
                                 reachedEnd = true;
                                 break;
                             }
-                            for(String newId: newDrawerIdSet) newDrawerId = newId;
+                            for(String newId: newDrawerIdSet) newDrawerId = newId; // runs once
                         }
                     }
                     System.out.println("the end was reached: "+reachedEnd);
@@ -682,7 +682,7 @@ public class GameService {
                                             .build()
                             );
                         }else{
-                            //finding the next available drawer index, hmm probably should add a check over here if the entire list is empty,
+                            //finding the next available drawer index, probably should add a check over here if the entire list is empty,
                             //the code that deletes the room if all member leave does exist but i guess its still prone to race conditons
                             currentRound++;
                             redisTemplate.opsForHash().put(roomId+":info","currentRound",currentRound+"");

@@ -83,7 +83,7 @@ public class ScheduledEventManager {
     @Scheduled(fixedDelay = 5000)
     public void propogateNextPhase(){
         Set<String> roomIds = redisTemplate.opsForSet().members("rooms");
-        for(String roomId: roomIds){
+        currentRoomProcess: for(String roomId: roomIds){
             String deadlineString = (String)redisTemplate.opsForHash().get(roomId+":info","phaseDeadLine");
             if(deadlineString==null)continue;
             Long deadline = Long.parseLong(deadlineString);
@@ -226,7 +226,7 @@ public class ScheduledEventManager {
                         for(String newId: newDrawerIdSet) newDrawerId = newId;
                     }
                 }
-                Long phaseDeadLine = Long.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","phaseDeadLine"));
+                Long phaseDeadLine;
 
                 if(reachedEnd){
                     Integer currentRound = Integer.valueOf((String)redisTemplate.opsForHash().get(roomId+":info","currentRound"));
@@ -252,9 +252,13 @@ public class ScheduledEventManager {
                         while(exitedMembersSet.contains(newDrawerId)){
                             newDrawerIdSet = redisTemplate.opsForZSet().range(roomId+":turnOrder",drawerIndex, drawerIndex);
                             drawerIndex++;
-                            System.out.println("new round: "+newDrawerIdSet);
+                            System.out.println("new round: "+newDrawerIdSet+" if size 0 then game ends");
                             if(newDrawerIdSet == null || newDrawerIdSet.size()==0){
-                                continue;
+                                // game ends because every one leaves
+                                System.out.println("game ends");
+                                phaseDeadLine = gamePropertiesService.GameDropDeadline();
+                                redisTemplate.opsForHash().putAll(roomId+":info",Map.of("phaseDeadLine", phaseDeadLine+"", "status", GameRoomStatus.ENDED.name()));
+                                continue currentRoomProcess;
                             }
                             for(String newId: newDrawerIdSet) newDrawerId = newId;
                         }
