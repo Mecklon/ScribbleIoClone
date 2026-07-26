@@ -18,7 +18,15 @@ const Image = ({
     const getData = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`http://${window.location.host}/api/files/${path}`, {
+
+        const fileUrl =
+          import.meta.env.VITE_USE_RENDER === "true"
+            ? `${import.meta.env.VITE_RENDER_API_URL}/api/files/${path}`
+            : import.meta.env.VITE_USE_NGINX === "true"
+              ? `${window.location.protocol}//${window.location.host}/api/files/${path}`
+              : `http://localhost:9090/files/${path}`;
+
+        const res = await api.get(fileUrl, {
           responseType: "blob",
         });
         objectUrl = URL.createObjectURL(res.data);
@@ -39,13 +47,7 @@ const Image = ({
   }, [path]);
 
   if (loading) {
-    return (
-      <img
-        src={fallback}
-        className={className}
-        alt=""
-      />
-    );
+    return <img src={fallback} className={className} alt="" />;
   }
   return (
     <img
