@@ -28,14 +28,7 @@ function App() {
   const dispatch = useDispatch();
   const [authChecked, setAuthChecked] = useState(false);
 
-
-
   useEffect(() => {
-
-console.log(import.meta.env.VITE_USE_RENDER);
-console.log(import.meta.env.VITE_RENDER_API_URL);
-console.log(apiUrl);
-
     const autoLogin = async () => {
       if (!auth.token) {
         setAuthChecked(true);
