@@ -14,7 +14,9 @@ if (import.meta.env.VITE_USE_RENDER === "true") {
   
 export function useWebSocket(token) {
 
+
   const client = useMemo(() => {
+
     return new Client({
       brokerURL,
       heartbeatIncoming: 4000,
@@ -28,7 +30,7 @@ export function useWebSocket(token) {
 
   useEffect(() => {
     client.activate();
-
+    console.log(brokerURL)
     return () => {
       client.deactivate();
     };
