@@ -37,7 +37,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             StompEndpointRegistry registry) {
 
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:5173","http://localhost");
+                .setAllowedOrigins("http://localhost:5173","http://localhost", "https://scribbleClone.vercel.app");
     }
 
     @Override
