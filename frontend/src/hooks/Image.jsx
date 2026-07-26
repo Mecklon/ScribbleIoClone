@@ -21,7 +21,7 @@ const Image = ({
 
         const fileUrl =
           import.meta.env.VITE_USE_RENDER === "true"
-            ? `${import.meta.env.VITE_RENDER_API_URL}/api/files/${path}`
+            ? `${import.meta.env.VITE_RENDER_API_URL}/files/${path}`
             : import.meta.env.VITE_USE_NGINX === "true"
               ? `${window.location.protocol}//${window.location.host}/api/files/${path}`
               : `http://localhost:9090/files/${path}`;
