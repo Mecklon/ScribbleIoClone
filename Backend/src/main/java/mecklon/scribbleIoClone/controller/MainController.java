@@ -72,7 +72,7 @@ public class MainController {
         return ResponseEntity.status(HttpStatus.OK).body(gameService.joinGame(roomId, auth));
     }
 
-    @PostMapping("/debug/redis")
+    @GetMapping("/debug/redis")
     public ResponseEntity<Void> clearRedis() {
         gameService.clearRedis();
         return ResponseEntity.ok().build();
