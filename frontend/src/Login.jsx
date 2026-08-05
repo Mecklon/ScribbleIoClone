@@ -5,6 +5,7 @@ import usePostFetch from "./hooks/usePostFetch";
 import rolling from './assets/rolling.gif'
 import { useDispatch } from "react-redux";
 import { setAuth } from "../store/AuthSlice";
+import useGetFetch from "./hooks/useGetFetch"
 
 function Login() {
 
@@ -53,10 +54,10 @@ function Login() {
     const emailRef = useRef();
     const passwordRef = useRef();
 
-    const {fetch:fetchDebug}= usePostFetch();
+    const {fetch:fetchDebug}= useGetFetch();
  
     const debug = async()=>{
-        await fetchDebug("/redis/debug",{},true)
+        await fetchDebug("/debug/redis",{},true)
     }
 
   return (
