@@ -203,6 +203,9 @@ public class ScheduledEventManager {
                     redisTemplate.opsForZSet().incrementScore(roomId+":leaderboard", playerId,playerPoints);
                 }
                 String drawer = (String)redisTemplate.opsForHash().get(roomId+":info","drawer");
+                System.out.println("drawer: "+drawer);
+                System.out.println("drawer id: "+drawerId);
+                System.out.println("points: "+drawerId);
                 pointsOutput.add(Map.of("points", totalRoundPoints/2, "username", drawer, "id",drawerId));
                 redisTemplate.opsForZSet().incrementScore(roomId+":leaderboard", drawerId, (Integer)(totalRoundPoints/2));
 
