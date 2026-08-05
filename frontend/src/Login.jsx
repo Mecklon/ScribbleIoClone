@@ -56,7 +56,7 @@ function Login() {
     const {fetch:fetchDebug}= usePostFetch();
  
     const debug = async()=>{
-        await fetchDebug("/redis/debug")
+        await fetchDebug("/redis/debug",{},true)
     }
 
   return (
