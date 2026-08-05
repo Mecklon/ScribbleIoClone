@@ -53,7 +53,7 @@ function Login() {
     const emailRef = useRef();
     const passwordRef = useRef();
 
-    const {fetchDebug: fetch}= usePostFetch();
+    const {fetch:fetchDebug}= usePostFetch();
  
     const debug = async()=>{
         await fetchDebug("/redis/debug")
