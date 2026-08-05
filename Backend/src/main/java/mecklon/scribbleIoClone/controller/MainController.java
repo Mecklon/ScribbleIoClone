@@ -72,6 +72,12 @@ public class MainController {
         return ResponseEntity.status(HttpStatus.OK).body(gameService.joinGame(roomId, auth));
     }
 
+    @PostMapping("/debug/redis")
+    public ResponseEntity<Void> clearRedis() {
+        gameService.clearRedis();
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/getRandomWords")
     public ResponseEntity<List<String>> getRandomWords(Authentication auth){
         return ResponseEntity.status(HttpStatus.OK).body(gameService.getWords(auth));

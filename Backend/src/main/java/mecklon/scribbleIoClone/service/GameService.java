@@ -912,6 +912,13 @@ public class GameService {
                         .build()
         );
     }
+
+    public void clearRedis() {
+        redisTemplate.getConnectionFactory()
+                .getConnection()
+                .serverCommands()
+                .flushAll();
+    }
 }
 
 

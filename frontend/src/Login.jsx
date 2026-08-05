@@ -53,9 +53,15 @@ function Login() {
     const emailRef = useRef();
     const passwordRef = useRef();
 
+    const {fetchDebug: fetch}= usePostFetch();
+ 
+    const debug = async()=>{
+        await fetchDebug("/redis/debug")
+    }
 
   return (
     <div className="flex items-center justify-center h-screen">
+        <button onClick={debug}>debug</button>
       <div className="aspect-7/8 border border-gray-500 bg-blue-500/50 rounded-md shadow-2xl p-5">
         <div className="flex gap-1 items-center">
           <PiScribbleDuotone className="text-5xl" />
